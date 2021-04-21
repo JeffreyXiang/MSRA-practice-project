@@ -44,8 +44,8 @@ class PositionalEncoding:
     def __call__(self, input_tensor):
         output = []
         for i in range(self.length):
-            output.append(torch.sin(2.0**i * np.pi * input_tensor))
-            output.append(torch.cos(2.0**i * np.pi * input_tensor))
+            output.append(torch.sin(2.0**i * input_tensor))
+            output.append(torch.cos(2.0**i * input_tensor))
         return torch.cat(output, -1)
 
 
@@ -81,14 +81,15 @@ class NeRF(torch.nn.Module):
         h = self.layers_pos[2](h)
         h = self.layers_pos[3](h)
         h = self.layers_pos[4](h)
-        h = torch.cat([input_pos, h], -1)
+        h = torch.cat([embedded_pos, h], -1)
         h = self.layers_pos[5](h)
         h = self.layers_pos[6](h)
         h = self.layers_pos[7](h)
         sigma = self.output_layer_sigma(h)
         h = self.layers_dir[0](h)
         h = torch.cat([h, embedded_dir], -1)
-        h = self.layers_pos[1](h)
+        h = self.layers_dir[1](h)
         rgb = self.output_layer_rgb(h)
         outputs = torch.cat([rgb, sigma], -1)
         return outputs
+
