@@ -1,4 +1,5 @@
 import torch
+from tqdm import tqdm
 import numpy as np
 
 to8b = lambda x: (255*np.clip(x, 0, 1)).astype(np.uint8)
@@ -146,8 +147,8 @@ def render_rays(rays, near, far, coarse_model, fine_model, coarse_sample_num, fi
     return rgb_map_coarse, depth_map_coarse, acc_map_coarse, rgb_map_fine, depth_map_fine, acc_map_fine
 
 
-def render_image(height, width, focal, pose, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num):
-    rays = get_rays(height, width, focal, pose)
+def render_image(width, height, focal, pose, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num):
+    rays = get_rays(width, height, focal, pose)
     rays = np.stack(rays, 0)
     rays = np.transpose(rays, [1, 2, 0, 3])
     rays = np.reshape(rays, [-1, 2, 3])
@@ -156,3 +157,10 @@ def render_image(height, width, focal, pose, near, far, coarse_model, fine_model
     _, _, _, rgb_map, depth_map, acc_map = render_rays(rays, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num)
     image = rgb_map.reshape([height, width, 3]).cpu().numpy()
     return image
+
+
+def render_video(width, height, focal, poses, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num):
+    return np.stack([
+        render_image(width, height, focal, p, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num)
+        for _, p in enumerate(tqdm(poses))
+    ])

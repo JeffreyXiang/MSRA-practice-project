@@ -1,4 +1,5 @@
 import torch
+import os
 from tqdm import tqdm, trange
 import imageio
 from data_loader import *
@@ -127,7 +128,7 @@ for global_step in trange(start, iterations + 1):
     if global_step % i_video == 0:
         # Turn on testing mode
         with torch.no_grad():
-            image = render_image(height, width, focal, camera_pos_to_transform_matrix(4, 0, 0),
+            image = render_image(width, height, focal, camera_pos_to_transform_matrix(4, 0, 0),
                                  render_near, render_far,
                                  coarse_model, fine_model,
                                  render_coarse_sample_num, render_fine_sample_num
