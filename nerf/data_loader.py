@@ -27,7 +27,6 @@ rot_theta = lambda th: np.array([
     [0, 0, 0, 1]
 ], dtype=float)
 
-
 blender_coord = np.array([
     [-1, 0, 0, 0],
     [0, 0, 1, 0],
@@ -50,6 +49,7 @@ def camera_pos_to_transform_matrix(radius, theta, phi):
     c2w = rot_theta(theta / 180. * np.pi) @ c2w
     return c2w
 
+
 def transform_matrix_to_camera_pos(c2w):
     """
     Get camera position with transform matrix
@@ -65,13 +65,14 @@ def transform_matrix_to_camera_pos(c2w):
     return radius, theta, phi
 
 
-def load_blender_data(file_path, resize=1, test_skip=1):
+def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
     """
     Get the Blender data from given directory
 
     :param file_path: directory path
     :param resize: resize ratio
     :param test_skip: skip step when getting test and validation data
+    :param view_dir_range:
     :return:
     """
     file_type = ['train', 'val', 'test']
@@ -89,14 +90,15 @@ def load_blender_data(file_path, resize=1, test_skip=1):
         skip = 1 if t == 'train' or test_skip == 0 else test_skip
 
         for frame in meta['frames'][::skip]:
-            file_name = os.path.join(file_path, frame['file_path'] + '.png')
-            image = Image.open(file_name)
-            if resize != 1:
-                image = image.resize((int(resize * image.width), int(resize * image.height)), Image.ANTIALIAS)
-            type_images.append(np.array(image))
-            type_poses.append(blender_coord @ np.array(frame['transform_matrix']))
-            # if -5 < transform_matrix_to_camera_pos(type_poses[-1])[1] < 5:
-            #     print(file_name)
+            _, theta, phi = transform_matrix_to_camera_pos(blender_coord @ np.array(frame['transform_matrix']))
+            if view_dir_range is None or \
+                    (-view_dir_range < theta < view_dir_range and -view_dir_range < phi < view_dir_range):
+                file_name = os.path.join(file_path, frame['file_path'] + '.png')
+                image = Image.open(file_name)
+                if resize != 1:
+                    image = image.resize((int(resize * image.width), int(resize * image.height)), Image.ANTIALIAS)
+                type_images.append(np.array(image))
+                type_poses.append(blender_coord @ np.array(frame['transform_matrix']))
 
         type_images = (np.array(type_images) / 255.).astype(np.float32)  # keep all 4 channels (RGBA)
         type_poses = np.array(type_poses).astype(np.float32)

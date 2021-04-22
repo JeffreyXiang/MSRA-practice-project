@@ -14,6 +14,7 @@ experiment_name = 'lego_1'
 data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
 data_resize = 0.5
 data_skip = 8
+data_view_dir_range = None
 
 render_near = 2.0
 render_far = 6.0
@@ -24,6 +25,7 @@ iterations = 200000
 batch_size = 1024
 learning_rate = 5e-4
 learning_rate_decay = 500
+use_fine_model = True
 
 i_print = 100
 i_save = 10000
@@ -33,7 +35,7 @@ i_video = 1000
 
 # Load Dataset
 dataset_type = ['train', 'val', 'test']
-images, poses, width, height, focal = load_blender_data(data_path, data_resize, data_skip)
+images, poses, width, height, focal = load_blender_data(data_path, data_resize, data_skip, data_view_dir_range)
 for t in dataset_type:
     images[t] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
 print('Data Loaded:\n'
@@ -54,8 +56,10 @@ print(f'Batching Finished: size={rays_rgb.shape}, batch_size={batch_size}, batch
 
 # Model
 coarse_model = NeRF()
-fine_model = NeRF()
-trainable_variables = list(coarse_model.parameters()) + list(fine_model.parameters())
+fine_model = NeRF() if use_fine_model else coarse_model
+trainable_variables = list(coarse_model.parameters())
+if use_fine_model:
+    trainable_variables += list(fine_model.parameters())
 optimizer = torch.optim.Adam(params=trainable_variables, lr=learning_rate, betas=(0.9, 0.999))
 
 # Load log directory
@@ -71,7 +75,8 @@ if len(check_points) > 0:
     global_step = check_point['global_step']
     optimizer.load_state_dict(check_point['optimizer'])
     coarse_model.load_state_dict(check_point['coarse_model'])
-    fine_model.load_state_dict(check_point['fine_model'])
+    if use_fine_model:
+        fine_model.load_state_dict(check_point['fine_model'])
 else:
     global_step = 0
 
@@ -99,7 +104,9 @@ for global_step in trange(start, iterations + 1):
     optimizer.zero_grad()
     loss_coarse = torch.mean((rgb_map_coarse - batch_rgb) ** 2)
     loss_fine = torch.mean((rgb_map_fine - batch_rgb) ** 2)
-    loss = loss_coarse + loss_fine
+    loss = loss_fine
+    if use_fine_model:
+        loss += loss_coarse
     psnr = -10 * torch.log10(loss_fine)
     loss.backward()
     optimizer.step()
@@ -120,7 +127,7 @@ for global_step in trange(start, iterations + 1):
         torch.save({
             'global_step': global_step,
             'coarse_model': coarse_model.state_dict(),
-            'fine_model': fine_model.state_dict(),
+            'fine_model': fine_model.state_dict() if use_fine_model else None,
             'optimizer': optimizer.state_dict(),
         }, path)
         tqdm.write(f'Saved checkpoints at {path}')
