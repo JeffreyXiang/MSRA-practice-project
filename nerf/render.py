@@ -147,20 +147,26 @@ def render_rays(rays, near, far, coarse_model, fine_model, coarse_sample_num, fi
     return rgb_map_coarse, depth_map_coarse, acc_map_coarse, rgb_map_fine, depth_map_fine, acc_map_fine
 
 
-def render_image(width, height, focal, pose, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num):
+def render_image(width, height, focal, pose, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num, chunk=1024*16):
     rays = get_rays(width, height, focal, pose)
     rays = np.stack(rays, 0)
     rays = np.transpose(rays, [1, 2, 0, 3])
     rays = np.reshape(rays, [-1, 2, 3])
-    rays = torch.tensor(rays, dtype=torch.float)
+    rgb_image = []
+    depth_image = []
+    acc_image = []
+    for i in range(0, rays.shape[0], chunk):
+        chunk_rays = torch.tensor(rays[i:i+chunk], dtype=torch.float)
+        _, _, _, rgb_map, depth_map, acc_map = render_rays(chunk_rays, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num)
+        rgb_image.append(rgb_map.cpu().numpy())
+        depth_image.append(depth_map.cpu().numpy())
+        acc_image.append(acc_map.cpu().numpy())
+    rgb_image = np.concatenate(rgb_image).reshape([height, width, 3])
+    return rgb_image
 
-    _, _, _, rgb_map, depth_map, acc_map = render_rays(rays, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num)
-    image = rgb_map.reshape([height, width, 3]).cpu().numpy()
-    return image
 
-
-def render_video(width, height, focal, poses, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num):
+def render_video(width, height, focal, poses, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num, chunk=1024*16):
     return np.stack([
-        render_image(width, height, focal, p, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num)
+        render_image(width, height, focal, p, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num, chunk)
         for _, p in enumerate(tqdm(poses))
     ])
