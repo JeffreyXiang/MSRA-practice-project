@@ -48,7 +48,7 @@ rays_rgb = np.transpose(rays_rgb, [0, 2, 3, 1, 4])  # [N, H, W, ro+rd+rgb, 3]
 rays_rgb = np.reshape(rays_rgb, [-1, 3, 3])  # [N*H*W, ro+rd+rgb, 3]
 np.random.shuffle(rays_rgb)
 rays_rgb = torch.tensor(rays_rgb, dtype=torch.float, device='cuda')
-batch_num = rays_rgb.shape[0] // batch_size + 1
+batch_num = int(np.ceil(rays_rgb.shape[0] / batch_size))
 print(f'Batching Finished: size={rays_rgb.shape}, batch_size={batch_size}, batch_num={batch_num}')
 
 # Model
