@@ -6,7 +6,7 @@
 *.npz
 *.dae
 data/*
-logs/*
+nerf/logs/*
 .vscode/
 .idea/
 nerf_python/
