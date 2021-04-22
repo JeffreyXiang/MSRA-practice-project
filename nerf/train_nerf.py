@@ -11,16 +11,16 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 output_path = './logs/'
 experiment_name = 'lego_1'
 data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
-data_resize = 0.5 / 5
+data_resize = 0.5
 data_skip = 8
 
 render_near = 2.0
 render_far = 6.0
-render_coarse_sample_num = 32 #
-render_fine_sample_num = 64 #
+render_coarse_sample_num = 64
+render_fine_sample_num = 128
 
 iterations = 200000
-batch_size = 64 #
+batch_size = 1024
 learning_rate = 5e-4
 learning_rate_decay = 500
 
@@ -51,14 +51,26 @@ rays_rgb = torch.tensor(rays_rgb, dtype=torch.float, device='cuda')
 batch_num = rays_rgb.shape[0] // batch_size + 1
 print(f'Batching Finished: size={rays_rgb.shape}, batch_size={batch_size}, batch_num={batch_num}')
 
-# Load log directory
-os.makedirs(os.path.join(output_path, experiment_name), exist_ok=True)
-
 # Model
 coarse_model = NeRF()
 fine_model = NeRF()
 trainable_variables = list(coarse_model.parameters()) + list(fine_model.parameters())
 optimizer = torch.optim.Adam(params=trainable_variables, lr=learning_rate, betas=(0.9, 0.999))
+
+# Load log directory
+log_path = os.path.join(output_path, experiment_name)
+os.makedirs(log_path, exist_ok=True)
+check_points = [os.path.join(log_path, f) for f in sorted(os.listdir(log_path)) if 'tar' in f]
+print('Found check_points', check_points)
+if len(check_points) > 0:
+    check_point_path = check_points[-1]
+    print('Reloading from', check_point_path)
+    check_point = torch.load(check_point_path)
+
+    global_step = check_point['global_step']
+    optimizer.load_state_dict(check_point['optimizer'])
+    coarse_model.load_state_dict(check_point['coarse_model'])
+    fine_model.load_state_dict(check_point['fine_model'])
 
 # Training
 global_step = 0
@@ -109,7 +121,7 @@ for global_step in trange(start, iterations + 1):
             'fine_model': fine_model.state_dict(),
             'optimizer': optimizer.state_dict(),
         }, path)
-        tqdm.write('Saved checkpoints at', path)
+        tqdm.write(f'Saved checkpoints at {path}')
 
     if global_step % i_video == 0:
         # Turn on testing mode
@@ -120,5 +132,5 @@ for global_step in trange(start, iterations + 1):
                                  render_coarse_sample_num, render_fine_sample_num
                                  )
         rgb8 = to8b(image)
-        filename = os.path.join(output_path, experiment_name, '{:06d}.png'.format(global_step))
+        filename = os.path.join(log_path, '{:06d}.png'.format(global_step))
         imageio.imwrite(filename, rgb8)
