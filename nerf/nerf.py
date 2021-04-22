@@ -13,7 +13,7 @@ class Dense(torch.nn.Linear):
         :param activation: non-linear activation
         """
         self.activation_name = activation
-        self.activation = eval('torch.nn.functional.' + activation) if activation != 'linear' else None
+        self.activation = eval('torch.' + activation) if activation != 'linear' else None
         super(Dense, self).__init__(input_dim, output_dim)
 
     def forward(self, input_tensor):

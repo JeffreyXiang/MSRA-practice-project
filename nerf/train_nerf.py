@@ -71,9 +71,10 @@ if len(check_points) > 0:
     optimizer.load_state_dict(check_point['optimizer'])
     coarse_model.load_state_dict(check_point['coarse_model'])
     fine_model.load_state_dict(check_point['fine_model'])
+else:
+    global_step = 0
 
 # Training
-global_step = 0
 batch_idx = 0
 global_step += 1
 start = global_step
