@@ -10,7 +10,7 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 """=============== GLOBAL ARGUMENTS ==============="""
 output_path = './logs/'
 experiment_name = 'lego_1'
-check_point_idx = 20000
+check_point_idx = 200000
 data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
 
 render_height = 800

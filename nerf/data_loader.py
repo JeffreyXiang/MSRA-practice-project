@@ -91,8 +91,16 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
 
         for frame in meta['frames'][::skip]:
             _, theta, phi = transform_matrix_to_camera_pos(blender_coord @ np.array(frame['transform_matrix']))
-            if view_dir_range is None or \
-                    (-view_dir_range < theta < view_dir_range and -view_dir_range < phi < view_dir_range):
+            flag = False
+            if view_dir_range is None:
+                flag = True
+            else:
+                for r in view_dir_range:
+                    if r[0] < theta < r[1] and r[2] < phi < r[3]:
+                        flag = True
+                        break
+            if flag:
+                print(frame['file_path'])
                 file_name = os.path.join(file_path, frame['file_path'] + '.png')
                 image = Image.open(file_name)
                 if resize != 1:
