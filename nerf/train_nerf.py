@@ -15,6 +15,7 @@ data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
 data_resize = 0.5
 data_skip = 8
 data_view_dir_range = None
+data_show_distribution = False
 
 render_near = 2.0
 render_far = 6.0
@@ -36,6 +37,8 @@ i_video = 1000
 # Load Dataset
 dataset_type = ['train', 'val', 'test']
 images, poses, width, height, focal = load_blender_data(data_path, data_resize, data_skip, data_view_dir_range)
+if data_show_distribution:
+    show_data_distribution(poses)
 for t in dataset_type:
     images[t] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
 print('Data Loaded:\n'

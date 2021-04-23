@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 import PIL.Image as Image
 import json
 
@@ -9,7 +10,7 @@ trans_t = lambda t: np.array([
     [0, 1, 0, 0],
     [0, 0, 1, t],
     [0, 0, 0, 1]
-], dtype=float)
+], dtype=np.float32)
 
 # pitch rotation matrix (+:down, -:up)
 rot_phi = lambda phi: np.array([
@@ -17,7 +18,7 @@ rot_phi = lambda phi: np.array([
     [0, np.cos(phi), -np.sin(phi), 0],
     [0, np.sin(phi), np.cos(phi), 0],
     [0, 0, 0, 1]
-], dtype=float)
+], dtype=np.float32)
 
 # yaw rotation matrix (+:right, -:left)
 rot_theta = lambda th: np.array([
@@ -25,14 +26,14 @@ rot_theta = lambda th: np.array([
     [0, 1, 0, 0],
     [np.sin(th), 0, np.cos(th), 0],
     [0, 0, 0, 1]
-], dtype=float)
+], dtype=np.float32)
 
 blender_coord = np.array([
     [-1, 0, 0, 0],
     [0, 0, 1, 0],
     [0, 1, 0, 0],
     [0, 0, 0, 1]
-], dtype=float)
+], dtype=np.float32)
 
 
 def camera_pos_to_transform_matrix(radius, theta, phi):
@@ -87,12 +88,14 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
         meta = metas[t]
         type_images = []
         type_poses = []
-        skip = 1 if t == 'train' or test_skip == 0 else test_skip
+        type_images_ = []
+        type_poses_ = []
+        skip = 1 if t != 'test' or test_skip == 0 else test_skip
 
         for frame in meta['frames'][::skip]:
             _, theta, phi = transform_matrix_to_camera_pos(blender_coord @ np.array(frame['transform_matrix']))
             flag = False
-            if view_dir_range is None:
+            if view_dir_range is None or t == 'test':
                 flag = True
             else:
                 for r in view_dir_range:
@@ -100,21 +103,67 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
                         flag = True
                         break
             if flag:
-                print(frame['file_path'])
+                # print(frame['file_path'])
                 file_name = os.path.join(file_path, frame['file_path'] + '.png')
                 image = Image.open(file_name)
                 if resize != 1:
                     image = image.resize((int(resize * image.width), int(resize * image.height)), Image.ANTIALIAS)
-                type_images.append(np.array(image))
-                type_poses.append(blender_coord @ np.array(frame['transform_matrix']))
+                type_images.append(np.array(image, dtype=np.float32))
+                type_poses.append(blender_coord @ np.array(frame['transform_matrix'], dtype=np.float32))
+            elif t == 'val':
+                type_images_.append(np.array(image, dtype=np.float32))
+                type_poses_.append(blender_coord @ np.array(frame['transform_matrix'], dtype=np.float32))
 
         type_images = (np.array(type_images) / 255.).astype(np.float32)  # keep all 4 channels (RGBA)
         type_poses = np.array(type_poses).astype(np.float32)
-        images[t] = type_images
-        poses[t] = type_poses
+        if t == 'val':
+            type_images_ = (np.array(type_images_) / 255.).astype(np.float32)  # keep all 4 channels (RGBA)
+            type_poses_ = np.array(type_poses_).astype(np.float32)
+            images['val'] = {'in': type_images, 'ex': type_images_}
+            poses['val'] = {'in': type_poses, 'ex': type_poses_}
+        else:
+            images[t] = type_images
+            poses[t] = type_poses
 
     height, width = images['train'][0].shape[:2]
     camera_angle_x = float(meta['camera_angle_x'])
     focal = 0.5 * width / np.tan(0.5 * camera_angle_x)
 
     return images, poses, width, height, focal
+
+
+def show_data_distribution(poses, show_test=False):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    xs = poses['train'][:, 0, 3]
+    ys = poses['train'][:, 1, 3]
+    zs = poses['train'][:, 2, 3]
+    ax.scatter(xs, ys, zs, c='r', marker='o')
+
+    xs = poses['val']['in'][:, 0, 3]
+    ys = poses['val']['in'][:, 1, 3]
+    zs = poses['val']['in'][:, 2, 3]
+    ax.scatter(xs, ys, zs, c='g', marker='s')
+
+    xs = poses['val']['ex'][:, 0, 3]
+    ys = poses['val']['ex'][:, 1, 3]
+    zs = poses['val']['ex'][:, 2, 3]
+    ax.scatter(xs, ys, zs, c='b', marker='s')
+
+    if show_test:
+        xs = poses['test'][:, 0, 3]
+        ys = poses['test'][:, 1, 3]
+        zs = poses['test'][:, 2, 3]
+        ax.scatter(xs, ys, zs, c='y', marker='^')
+
+    ax.set_xlim([-5, 5])
+    ax.set_ylim([-5, 5])
+    ax.set_zlim([-5, 5])
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    ax.view_init(elev=90, azim=-90)
+
+    plt.show()
