@@ -40,10 +40,15 @@ images, poses, width, height, focal = load_blender_data(data_path, data_resize, 
 if data_show_distribution:
     show_data_distribution(poses)
 for t in dataset_type:
-    images[t] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
+    if t == 'val':
+        images['val']['in'] = images['val']['in'][..., :3] * images['val']['in'][..., -1:] + (1. - images['val']['in'][..., -1:])
+        images['val']['ex'] = images['val']['ex'][..., :3] * images['val']['ex'][..., -1:] + (1. - images['val']['ex'][..., -1:])
+    else:
+        images[t] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
 print('Data Loaded:\n'
       f'train_set={images[dataset_type[0]].shape}\n'
-      f'val_set={images[dataset_type[1]].shape}\n'
+      f'val_set_in={images[dataset_type[1]]["in"].shape}\n'
+      f'val_set_ex={images[dataset_type[1]]["ex"].shape}\n'
       f'test_set={images[dataset_type[2]].shape}\n'
       )
 
