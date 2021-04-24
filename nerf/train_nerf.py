@@ -12,7 +12,7 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 output_path = './logs/'
 experiment_name = 'lego_1'
 data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
-data_resize = 0.5
+data_resize = 0.05
 data_skip = 8
 data_view_dir_range = None
 data_show_distribution = False
@@ -23,10 +23,11 @@ render_coarse_sample_num = 64
 render_fine_sample_num = 128
 
 iterations = 200000
-batch_size = 1024
+batch_size = 64
 learning_rate = 5e-4
 learning_rate_decay = 500
 use_fine_model = True
+use_alpha = True
 
 i_print = 100
 i_save = 10000
@@ -41,10 +42,10 @@ if data_show_distribution:
     show_data_distribution(poses)
 for t in dataset_type:
     if t == 'val':
-        images['val']['in'] = images['val']['in'][..., :3] * images['val']['in'][..., -1:] + (1. - images['val']['in'][..., -1:])
-        images['val']['ex'] = images['val']['ex'][..., :3] * images['val']['ex'][..., -1:] + (1. - images['val']['ex'][..., -1:])
+        images['val']['in'][..., :3] = images['val']['in'][..., :3] * images['val']['in'][..., -1:] + (1. - images['val']['in'][..., -1:])
+        images['val']['ex'][..., :3] = images['val']['ex'][..., :3] * images['val']['ex'][..., -1:] + (1. - images['val']['ex'][..., -1:])
     else:
-        images[t] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
+        images[t][..., :3] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
 print('Data Loaded:\n'
       f'train_set={images[dataset_type[0]].shape}\n'
       f'val_set_in={images[dataset_type[1]]["in"].shape}\n'
@@ -54,13 +55,14 @@ print('Data Loaded:\n'
 
 # Batching
 rays = np.stack([get_rays(width, height, focal, p) for p in poses[dataset_type[0]][:, :3, :4]], 0)  # [N, ro+rd, H, W, 3]
-rays_rgb = np.concatenate([rays, images[dataset_type[0]][:, None]], 1)  # [N, ro+rd+rgb, H, W, 3]
-rays_rgb = np.transpose(rays_rgb, [0, 2, 3, 1, 4])  # [N, H, W, ro+rd+rgb, 3]
-rays_rgb = np.reshape(rays_rgb, [-1, 3, 3])  # [N*H*W, ro+rd+rgb, 3]
-np.random.shuffle(rays_rgb)
-rays_rgb = torch.tensor(rays_rgb, dtype=torch.float, device='cuda')
-batch_num = int(np.ceil(rays_rgb.shape[0] / batch_size))
-print(f'Batching Finished: size={rays_rgb.shape}, batch_size={batch_size}, batch_num={batch_num}')
+rays = np.transpose(rays, [0, 2, 3, 1, 4])  # [N, H, W, ro+rd, 3]
+rays = np.reshape(rays, [-1, 6])  # [N*H*W, 6]
+rgba = np.reshape(images[dataset_type[0]], [-1, 4]) # [N*H*W, 4]
+rays_rgba = np.concatenate([rays, rgba], 1) # [N*H*W, 10]
+np.random.shuffle(rays_rgba)
+rays_rgba = torch.tensor(rays_rgba, dtype=torch.float, device='cuda')
+batch_num = int(np.ceil(rays_rgba.shape[0] / batch_size))
+print(f'Batching Finished: size={rays_rgba.shape}, batch_size={batch_size}, batch_num={batch_num}')
 
 # Model
 coarse_model = NeRF()
@@ -94,7 +96,9 @@ global_step += 1
 start = global_step
 for global_step in trange(start, iterations + 1):
     batch = rays_rgb[batch_idx * batch_size:(batch_idx + 1) * batch_size]
-    batch_rays, batch_rgb = batch[:, :2], batch[:, 2].squeeze()
+    batch_rays = torch.reshape(batch[:, :6], [-1, 2, 3])
+    batch_rgb = batch[:, -4:-1]
+    batch_alpha = batch[:, -1:]
     batch_idx += 1
     if batch_idx == batch_num:
         # Shuffle data at the beginning of a epoch
@@ -103,7 +107,7 @@ for global_step in trange(start, iterations + 1):
         batch_idx = 0
 
     # Render
-    rgb_map_coarse, _, _, rgb_map_fine, _, _ =\
+    rgb_map_coarse, _, acc_map_coarse, rgb_map_fine, _, acc_map_fine =\
         render_rays(batch_rays, render_near, render_far,
                     coarse_model, fine_model,
                     render_coarse_sample_num, render_fine_sample_num)
@@ -112,6 +116,9 @@ for global_step in trange(start, iterations + 1):
     optimizer.zero_grad()
     loss_coarse = torch.mean((rgb_map_coarse - batch_rgb) ** 2)
     loss_fine = torch.mean((rgb_map_fine - batch_rgb) ** 2)
+    if use_alpha:
+        loss_coarse += torch.mean((acc_map_coarse - batch_alpha) ** 2)
+        loss_fine += torch.mean((acc_map_fine - batch_alpha) ** 2)
     loss = loss_fine
     if use_fine_model:
         loss += loss_coarse
