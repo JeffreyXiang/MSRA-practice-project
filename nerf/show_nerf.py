@@ -13,9 +13,9 @@ experiment_name = 'lego_1'
 check_point_idx = 200000
 data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
 
-render_height = 800
-render_width = 800
-render_focal = 800
+render_height = 400
+render_width = 400
+render_focal = 400
 render_near = 2.0
 render_far = 6.0
 render_coarse_sample_num = 64
@@ -47,7 +47,10 @@ with torch.no_grad():
                          coarse_model, fine_model,
                          render_coarse_sample_num, render_fine_sample_num
                          )
-print('Done, saving', video.shape)
-video_path = os.path.join(log_path, 'spiral_{:06d}_rgb.gif'.format(global_step))
-imageio.mimwrite(video_path, to8b(video), duration=0.1)
-print('Saved to', video_path)
+print('Done, saving', video[0].shape)
+video_rgb_path = os.path.join(log_path, 'spiral_{:06d}_rgb.gif'.format(global_step))
+video_alpha_path = os.path.join(log_path, 'spiral_{:06d}_alpha.gif'.format(global_step))
+imageio.mimwrite(video_rgb_path, to8b(video[0]), duration=0.1)
+print('Saved to', video_rgb_path)
+imageio.mimwrite(video_rgb_path, to8b(video[2]), duration=0.1)
+print('Saved to', video_alpha_path)

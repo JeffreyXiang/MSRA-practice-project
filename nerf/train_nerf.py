@@ -116,13 +116,13 @@ for global_step in trange(start, iterations + 1):
     optimizer.zero_grad()
     loss_coarse = torch.mean((rgb_map_coarse - batch_rgb) ** 2)
     loss_fine = torch.mean((rgb_map_fine - batch_rgb) ** 2)
+    psnr = -10 * torch.log10(loss_fine)
     if use_alpha:
-        loss_coarse += torch.mean((acc_map_coarse - batch_alpha) ** 2)
-        loss_fine += torch.mean((acc_map_fine - batch_alpha) ** 2)
+        loss_coarse += 0.01 * torch.mean((acc_map_coarse - batch_alpha) ** 2)
+        loss_fine += 0.01 * torch.mean((acc_map_fine - batch_alpha) ** 2)
     loss = loss_fine
     if use_fine_model:
         loss += loss_coarse
-    psnr = -10 * torch.log10(loss_fine)
     loss.backward()
     optimizer.step()
 
@@ -150,11 +150,11 @@ for global_step in trange(start, iterations + 1):
     if global_step % i_video == 0:
         # Turn on testing mode
         with torch.no_grad():
-            image = render_image(width, height, focal, camera_pos_to_transform_matrix(4, 0, 0),
-                                 render_near, render_far,
-                                 coarse_model, fine_model,
-                                 render_coarse_sample_num, render_fine_sample_num
-                                 )
+            image, _, _ = render_image(width, height, focal, camera_pos_to_transform_matrix(4, 0, 0),
+                                       render_near, render_far,
+                                       coarse_model, fine_model,
+                                       render_coarse_sample_num, render_fine_sample_num
+                                       )
         rgb8 = to8b(image)
         filename = os.path.join(log_path, '{:06d}.png'.format(global_step))
         imageio.imwrite(filename, rgb8)

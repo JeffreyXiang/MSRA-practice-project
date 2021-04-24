@@ -162,11 +162,21 @@ def render_image(width, height, focal, pose, near, far, coarse_model, fine_model
         depth_image.append(depth_map.cpu().numpy())
         acc_image.append(acc_map.cpu().numpy())
     rgb_image = np.concatenate(rgb_image).reshape([height, width, 3])
-    return rgb_image
+    depth_image = np.concatenate(depth_image).reshape([height, width, 1])
+    acc_image = np.concatenate(acc_image).reshape([height, width, 1])
+    return rgb_image, depth_image, acc_image
 
 
 def render_video(width, height, focal, poses, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num, chunk=1024*16):
-    return np.stack([
-        render_image(width, height, focal, p, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num, chunk)
-        for _, p in enumerate(tqdm(poses))
-    ])
+    rgb_video = []
+    depth_video = []
+    acc_video = []
+    for _, p in enumerate(tqdm(poses)):
+        rgb_image, depth_image, acc_image = render_image(width, height, focal, p, near, far, coarse_model, fine_model, coarse_sample_num, fine_sample_num, chunk)
+        rgb_video.append(rgb_image)
+        depth_video.append(depth_image)
+        acc_video.append(acc_image)
+    rgb_video = np.stack(rgb_video)
+    depth_video = np.stack(depth_video)
+    acc_video = np.stack(acc_video)
+    return rgb_video, depth_video, acc_video
