@@ -52,5 +52,5 @@ video_rgb_path = os.path.join(log_path, 'spiral_{:06d}_rgb.gif'.format(global_st
 video_alpha_path = os.path.join(log_path, 'spiral_{:06d}_alpha.gif'.format(global_step))
 imageio.mimwrite(video_rgb_path, to8b(video[0]), duration=0.1)
 print('Saved to', video_rgb_path)
-imageio.mimwrite(video_rgb_path, to8b(video[2]), duration=0.1)
+imageio.mimwrite(video_alpha_path, to8b(video[2]), duration=0.1)
 print('Saved to', video_alpha_path)

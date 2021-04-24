@@ -26,6 +26,7 @@ iterations = 200000
 batch_size = 1024
 learning_rate = 5e-4
 learning_rate_decay = 500
+start_up_itrs = 500
 use_fine_model = True
 use_alpha = True
 
@@ -95,17 +96,31 @@ batch_idx = 0
 global_step += 1
 start = global_step
 for global_step in trange(start, iterations + 1):
-    batch = rays_rgba[batch_idx * batch_size:(batch_idx + 1) * batch_size]
+    if global_step <= start_up_itrs:  # Start up
+        if global_step == 1:
+            tqdm.write(f"[Train] Start-up phase with {start_up_itrs} iterations.")
+        s_image_idx = np.random.choice(range(images['train'].shape[0]))
+        s_image = images['train'][s_image_idx]
+        s_pose = poses['train'][s_image_idx]
+        s_rays = np.concatenate(get_rays(width / 2, height / 2, focal, s_pose[:3, :4]))  # [ro+rd, H, W, 3]
+        s_rays = np.transpose(s_rays, [1, 2, 0, 3])  # [H, W, ro+rd, 3]
+        s_rays = np.reshape(s_rays, [-1, 6])  # [H*W, 6]
+        s_rgba = np.reshape(s_image, [-1, 4])  # [H*W, 4]
+        s_rays_rgba = np.concatenate([s_rays, s_rgba], 1)  # [H*W, 10]
+        s_sample_idx = np.random.choice(range(s_rays_rgba.shape[0]), size=batch_size, replace=False)
+        batch = torch.tensor(s_rays_rgba[s_sample_idx], dtype=torch.float, device='cuda')
+    else:
+        batch = rays_rgba[batch_idx * batch_size:(batch_idx + 1) * batch_size]
+        batch_idx += 1
+        if batch_idx == batch_num:
+            # Shuffle data at the beginning of a epoch
+            shuffle_idx = torch.randperm(rays_rgba.shape[0])
+            rays_rgb = rays_rgba[shuffle_idx]
+            batch_idx = 0
+
     batch_rays = torch.reshape(batch[:, :6], [-1, 2, 3])
     batch_rgb = batch[:, -4:-1]
-    batch_alpha = batch[:, -1:]
-    batch_idx += 1
-    if batch_idx == batch_num:
-        # Shuffle data at the beginning of a epoch
-        shuffle_idx = torch.randperm(rays_rgba.shape[0])
-        rays_rgb = rays_rgba[shuffle_idx]
-        batch_idx = 0
-
+    batch_alpha = batch[:, -1]
     # Render
     rgb_map_coarse, _, acc_map_coarse, rgb_map_fine, _, acc_map_fine =\
         render_rays(batch_rays, render_near, render_far,
@@ -118,8 +133,8 @@ for global_step in trange(start, iterations + 1):
     loss_fine = torch.mean((rgb_map_fine - batch_rgb) ** 2)
     psnr = -10 * torch.log10(loss_fine)
     if use_alpha:
-        loss_coarse += 0.01 * torch.mean((acc_map_coarse - batch_alpha) ** 2)
-        loss_fine += 0.01 * torch.mean((acc_map_fine - batch_alpha) ** 2)
+        loss_coarse += 0.1 * torch.mean((acc_map_coarse - batch_alpha) ** 2)
+        loss_fine += 0.1 * torch.mean((acc_map_fine - batch_alpha) ** 2)
     loss = loss_fine
     if use_fine_model:
         loss += loss_coarse
