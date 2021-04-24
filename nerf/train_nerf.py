@@ -12,7 +12,7 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 output_path = './logs/'
 experiment_name = 'lego_1'
 data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
-data_resize = 0.05
+data_resize = 0.5
 data_skip = 8
 data_view_dir_range = None
 data_show_distribution = False
@@ -23,7 +23,7 @@ render_coarse_sample_num = 64
 render_fine_sample_num = 128
 
 iterations = 200000
-batch_size = 64
+batch_size = 1024
 learning_rate = 5e-4
 learning_rate_decay = 500
 use_fine_model = True
@@ -95,15 +95,15 @@ batch_idx = 0
 global_step += 1
 start = global_step
 for global_step in trange(start, iterations + 1):
-    batch = rays_rgb[batch_idx * batch_size:(batch_idx + 1) * batch_size]
+    batch = rays_rgba[batch_idx * batch_size:(batch_idx + 1) * batch_size]
     batch_rays = torch.reshape(batch[:, :6], [-1, 2, 3])
     batch_rgb = batch[:, -4:-1]
     batch_alpha = batch[:, -1:]
     batch_idx += 1
     if batch_idx == batch_num:
         # Shuffle data at the beginning of a epoch
-        shuffle_idx = torch.randperm(rays_rgb.shape[0])
-        rays_rgb = rays_rgb[shuffle_idx]
+        shuffle_idx = torch.randperm(rays_rgba.shape[0])
+        rays_rgb = rays_rgba[shuffle_idx]
         batch_idx = 0
 
     # Render
