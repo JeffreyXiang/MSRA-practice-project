@@ -22,7 +22,7 @@ data_resize = config['data_resize'] if 'data_resize' in config else 0.5
 data_skip = config['data_skip'] if 'data_skip' in config else 8
 data_test_idx = config['data_test_idx'] if 'data_test_idx' in config else None
 data_view_dir_range = config['data_view_dir_range'] if 'data_view_dir_range' in config else None
-data_view_dir_noise = config['data_view_dir_noise'] if 'data_view_dir_noise' in config else 0
+data_view_dir_noise = config['data_view_dir_noise'] if 'data_view_dir_noise' in config else None
 data_show_distribution = config['data_show_distribution'] if 'data_show_distribution' in config else False
 
 render_near = config['render_near'] if 'render_near' in config else 2.0
@@ -64,7 +64,7 @@ for t in dataset_type:
     else:
         images[t][..., :3] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
 if data_view_dir_noise is not None:
-    poses['train'] += np.random.randn(poses['train'].shape) * np.sqrt(data_view_dir_noise)
+    poses['train'] += np.random.normal(size=poses['train'].shape) * np.sqrt(data_view_dir_noise)
 print('Data Loaded:\n'
       f'train_set={images[dataset_type[0]].shape}\n'
       f'val_set_in={images[dataset_type[1]]["in"].shape}\n'
