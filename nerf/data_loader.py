@@ -66,7 +66,7 @@ def transform_matrix_to_camera_pos(c2w):
     return radius, theta, phi
 
 
-def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
+def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, test_idx=None):
     """
     Get the Blender data from given directory
 
@@ -84,6 +84,7 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
 
     images = {}
     poses = {}
+    test_idx_res = []
     for t in file_type:
         meta = metas[t]
         type_images = []
@@ -95,15 +96,24 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
         for frame in meta['frames'][::skip]:
             _, theta, phi = transform_matrix_to_camera_pos(blender_coord @ np.array(frame['transform_matrix']))
             flag = False
-            if view_dir_range is None or t == 'test':
+            if t == 'test':
                 flag = True
+            elif t == 'val' or test_idx is None:
+                if view_dir_range is None:
+                    flag = True
+                else:
+                    for r in view_dir_range:
+                        if r[0] < theta < r[1] and r[2] < phi < r[3]:
+                            flag = True
+                            break
             else:
-                for r in view_dir_range:
-                    if r[0] < theta < r[1] and r[2] < phi < r[3]:
-                        flag = True
-                        break
+                file_idx = int(frame['file_path'].split('_')[1])
+                if file_idx in test_idx:
+                    flag = True
             if flag:
-                # print(frame['file_path'])
+                if t == 'train':
+                    file_idx = int(frame['file_path'].split('_')[1])
+                    test_idx_res.append(file_idx)
                 file_name = os.path.join(file_path, frame['file_path'] + '.png')
                 image = Image.open(file_name)
                 if resize != 1:
@@ -129,7 +139,7 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None):
     camera_angle_x = float(meta['camera_angle_x'])
     focal = 0.5 * width / np.tan(0.5 * camera_angle_x)
 
-    return images, poses, width, height, focal
+    return images, poses, width, height, focal, test_idx_res
 
 
 def show_data_distribution(poses, show_test=False):

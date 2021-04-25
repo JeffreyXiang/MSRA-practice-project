@@ -1,5 +1,7 @@
 import torch
 import os
+import sys
+import json
 from tqdm import tqdm, trange
 import imageio
 from data_loader import *
@@ -9,36 +11,50 @@ from nerf import NeRF
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 """=============== GLOBAL ARGUMENTS ==============="""
-output_path = './logs/'
-experiment_name = 'lego_1'
-data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
-data_resize = 0.5
-data_skip = 8
-data_view_dir_range = None
-data_show_distribution = False
+config_filepath = sys.argv[1]
+with open(config_filepath, 'r') as config_file:
+    config = json.load(config_file)
 
-render_near = 2.0
-render_far = 6.0
-render_coarse_sample_num = 64
-render_fine_sample_num = 128
+output_path = config['output_path']
+experiment_name = config['experiment_name']
+data_path = config['data_path']
+data_resize = config['data_resize'] if 'data_resize' in config else 0.5
+data_skip = config['data_skip'] if 'data_skip' in config else 8
+data_test_idx = config['data_test_idx'] if 'data_test_idx' in config else None
+data_view_dir_range = config['data_view_dir_range'] if 'data_view_dir_range' in config else None
+data_view_dir_noise = config['data_view_dir_noise'] if 'data_view_dir_noise' in config else 0
+data_show_distribution = config['data_show_distribution'] if 'data_show_distribution' in config else False
 
-iterations = 200000
-batch_size = 1024
-learning_rate = 5e-4
-learning_rate_decay = 500
-start_up_itrs = 500
-use_fine_model = True
-use_alpha = True
+render_near = config['render_near'] if 'render_near' in config else 2.0
+render_far = config['render_far'] if 'render_far' in config else 6.0
+render_coarse_sample_num = config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 64
+render_fine_sample_num = config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 128
 
-i_print = 100
-i_save = 10000
-i_video = 1000
+iterations = config['iterations'] if 'iterations' in config else 200000
+batch_size = config['batch_size'] if 'batch_size' in config else 1024
+learning_rate = config['learning_rate'] if 'learning_rate' in config else 5e-4
+learning_rate_decay = config['learning_rate_decay'] if 'learning_rate_decay' in config else 500
+start_up_itrs = config['start_up_itrs'] if 'start_up_itrs' in config else 500
+use_fine_model = config['use_fine_model'] if 'use_fine_model' in config else True
+use_alpha = config['use_alpha'] if 'use_alpha' in config else False
+
+i_print = config['i_print'] if 'i_print' in config else 100
+i_save = config['i_save'] if 'i_save' in config else 10000
+i_image = config['i_image'] if 'i_image' in config else 1000
 
 """=============== START ==============="""
 
 # Load Dataset
+log_path = os.path.join(output_path, experiment_name)
+os.makedirs(log_path, exist_ok=True)
+
 dataset_type = ['train', 'val', 'test']
-images, poses, width, height, focal = load_blender_data(data_path, data_resize, data_skip, data_view_dir_range)
+images, poses, width, height, focal, test_idx = load_blender_data(data_path, data_resize, data_skip, data_view_dir_range, data_test_idx)
+config['data_test_idx'] = test_idx
+config_file_path = os.path.join(log_path, 'config.json')
+with open(config_file_path, 'w') as config_file:
+    json.dump(config, config_file)
+print('Config file write to:', config_file_path)
 if data_show_distribution:
     show_data_distribution(poses)
 for t in dataset_type:
@@ -47,6 +63,8 @@ for t in dataset_type:
         images['val']['ex'][..., :3] = images['val']['ex'][..., :3] * images['val']['ex'][..., -1:] + (1. - images['val']['ex'][..., -1:])
     else:
         images[t][..., :3] = images[t][..., :3] * images[t][..., -1:] + (1. - images[t][..., -1:])
+if data_view_dir_noise is not None:
+    poses['train'] += np.random.randn(poses['train'].shape) * np.sqrt(data_view_dir_noise)
 print('Data Loaded:\n'
       f'train_set={images[dataset_type[0]].shape}\n'
       f'val_set_in={images[dataset_type[1]]["in"].shape}\n'
@@ -74,8 +92,6 @@ if use_fine_model:
 optimizer = torch.optim.Adam(params=trainable_variables, lr=learning_rate, betas=(0.9, 0.999))
 
 # Load log directory
-log_path = os.path.join(output_path, experiment_name)
-os.makedirs(log_path, exist_ok=True)
 check_points = [os.path.join(log_path, f) for f in sorted(os.listdir(log_path)) if 'tar' in f]
 print('Found check_points', check_points)
 if len(check_points) > 0:
@@ -92,6 +108,10 @@ else:
     global_step = 0
 
 # Training
+s_width = int(width / 2)
+s_height = int(height / 2)
+s_left = int(width / 4)
+s_top = int(height / 4)
 batch_idx = 0
 global_step += 1
 start = global_step
@@ -102,10 +122,10 @@ for global_step in trange(start, iterations + 1):
         s_image_idx = np.random.choice(range(images['train'].shape[0]))
         s_image = images['train'][s_image_idx]
         s_pose = poses['train'][s_image_idx]
-        s_rays = np.concatenate(get_rays(width / 2, height / 2, focal, s_pose[:3, :4]))  # [ro+rd, H, W, 3]
+        s_rays = np.concatenate([get_rays(s_width, s_height, focal, s_pose[:3, :4])])  # [ro+rd, H, W, 3]
         s_rays = np.transpose(s_rays, [1, 2, 0, 3])  # [H, W, ro+rd, 3]
         s_rays = np.reshape(s_rays, [-1, 6])  # [H*W, 6]
-        s_rgba = np.reshape(s_image, [-1, 4])  # [H*W, 4]
+        s_rgba = np.reshape(s_image[s_top:s_top + s_height, s_left:s_left + s_width], [-1, 4])  # [H*W, 4]
         s_rays_rgba = np.concatenate([s_rays, s_rgba], 1)  # [H*W, 10]
         s_sample_idx = np.random.choice(range(s_rays_rgba.shape[0]), size=batch_size, replace=False)
         batch = torch.tensor(s_rays_rgba[s_sample_idx], dtype=torch.float, device='cuda')
@@ -162,7 +182,7 @@ for global_step in trange(start, iterations + 1):
         }, path)
         tqdm.write(f'Saved checkpoints at {path}')
 
-    if global_step % i_video == 0:
+    if global_step % i_image == 0:
         # Turn on testing mode
         with torch.no_grad():
             image, _, _ = render_image(width, height, focal, camera_pos_to_transform_matrix(4, 0, 0),

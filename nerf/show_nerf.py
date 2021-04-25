@@ -1,5 +1,6 @@
 import torch
 import os
+import sys
 import imageio
 from render import *
 from nerf import NeRF
@@ -8,20 +9,24 @@ from data_loader import *
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 """=============== GLOBAL ARGUMENTS ==============="""
-output_path = './logs/'
-experiment_name = 'lego_1'
-check_point_idx = 200000
-data_path = '../../nerf-pytorch/data/nerf_synthetic/lego'
+config_filepath = os.path.join(sys.argv[1], 'config.json')
+check_point_idx = int(sys.argv[2])
+render_width = int(sys.argv[3]) if len(sys.argv) > 3 else 400
+render_height = int(sys.argv[4]) if len(sys.argv) > 4 else 400
+render_focal = int(sys.argv[5]) if len(sys.argv) > 5 else render_width * 1.3875
+render_more_sample = float(sys.argv[6]) if len(sys.argv) > 6 else 1
+with open(config_filepath, 'r') as config_file:
+    config = json.load(config_file)
 
-render_height = 400
-render_width = 400
-render_focal = 400
-render_near = 2.0
-render_far = 6.0
-render_coarse_sample_num = 64
-render_fine_sample_num = 128
+output_path = config['output_path']
+experiment_name = config['experiment_name']
 
-use_fine_model = True
+render_near = config['render_near'] if 'render_near' in config else 2.0
+render_far = config['render_far'] if 'render_far' in config else 6.0
+render_coarse_sample_num = render_more_sample * config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 64
+render_fine_sample_num = render_more_sample * config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 128
+
+use_fine_model = config['use_fine_model'] if 'use_fine_model' in config else True
 
 """=============== START ==============="""
 
