@@ -2,7 +2,7 @@
     "output_path": "./logs/",
     "experiment_name": "lego",
     "data_path": "../../nerf-pytorch/data/nerf_synthetic/lego",
-    "data_resize": 0.1,
+    "data_resize": 0.5,
     "data_skip": 8,
     "data_view_dir_range": null,
     "data_show_distribution": false,

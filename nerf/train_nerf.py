@@ -20,9 +20,10 @@ experiment_name = config['experiment_name']
 data_path = config['data_path']
 data_resize = config['data_resize'] if 'data_resize' in config else 0.5
 data_skip = config['data_skip'] if 'data_skip' in config else 8
-data_test_idx = config['data_test_idx'] if 'data_test_idx' in config else None
+data_train_idx = config['data_train_idx'] if 'data_train_idx' in config else None
 data_view_dir_range = config['data_view_dir_range'] if 'data_view_dir_range' in config else None
 data_view_dir_noise = config['data_view_dir_noise'] if 'data_view_dir_noise' in config else None
+data_target_num = config['data_target_num'] if 'data_target_num' in config else None
 data_show_distribution = config['data_show_distribution'] if 'data_show_distribution' in config else False
 
 render_near = config['render_near'] if 'render_near' in config else 2.0
@@ -49,8 +50,8 @@ log_path = os.path.join(output_path, experiment_name)
 os.makedirs(log_path, exist_ok=True)
 
 dataset_type = ['train', 'val', 'test']
-images, poses, width, height, focal, test_idx = load_blender_data(data_path, data_resize, data_skip, data_view_dir_range, data_test_idx)
-config['data_test_idx'] = test_idx
+images, poses, width, height, focal, train_idx = load_blender_data(data_path, data_resize, data_skip, data_view_dir_range, data_target_num, data_train_idx)
+config['data_train_idx'] = train_idx
 config_file_path = os.path.join(log_path, 'config.json')
 with open(config_file_path, 'w') as config_file:
     json.dump(config, config_file)

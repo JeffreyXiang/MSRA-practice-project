@@ -66,7 +66,7 @@ def transform_matrix_to_camera_pos(c2w):
     return radius, theta, phi
 
 
-def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, test_idx=None):
+def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, target_num=None, train_idx=None):
     """
     Get the Blender data from given directory
 
@@ -84,7 +84,7 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, tes
 
     images = {}
     poses = {}
-    test_idx_res = []
+    train_idx_res = []
     for t in file_type:
         meta = metas[t]
         type_images = []
@@ -98,7 +98,7 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, tes
             flag = False
             if t == 'test':
                 flag = True
-            elif t == 'val' or test_idx is None:
+            elif t == 'val' or train_idx is None:
                 if view_dir_range is None:
                     flag = True
                 else:
@@ -108,12 +108,12 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, tes
                             break
             else:
                 file_idx = int(frame['file_path'].split('_')[1])
-                if file_idx in test_idx:
+                if file_idx in train_idx:
                     flag = True
             if flag:
                 if t == 'train':
                     file_idx = int(frame['file_path'].split('_')[1])
-                    test_idx_res.append(file_idx)
+                    train_idx_res.append(file_idx)
                 file_name = os.path.join(file_path, frame['file_path'] + '.png')
                 image = Image.open(file_name)
                 if resize != 1:
@@ -126,6 +126,13 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, tes
 
         type_images = (np.array(type_images) / 255.).astype(np.float32)  # keep all 4 channels (RGBA)
         type_poses = np.array(type_poses).astype(np.float32)
+        if t == 'train' and target_num is not None:
+            choice_idx = np.random.choice(list(range(type_images.shape[0])), size=target_num, replace=False)
+            type_images = type_images[choice_idx]
+            type_poses = type_poses[choice_idx]
+            for i in reversed(range(len(train_idx_res))):
+                if i not in choice_idx:
+                    del train_idx_res[i]
         if t == 'val':
             type_images_ = (np.array(type_images_) / 255.).astype(np.float32)  # keep all 4 channels (RGBA)
             type_poses_ = np.array(type_poses_).astype(np.float32)
@@ -139,7 +146,7 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, tes
     camera_angle_x = float(meta['camera_angle_x'])
     focal = 0.5 * width / np.tan(0.5 * camera_angle_x)
 
-    return images, poses, width, height, focal, test_idx_res
+    return images, poses, width, height, focal, train_idx_res
 
 
 def show_data_distribution(poses, show_test=False):
@@ -151,15 +158,17 @@ def show_data_distribution(poses, show_test=False):
     zs = poses['train'][:, 2, 3]
     ax.scatter(xs, ys, zs, c='r', marker='o')
 
-    xs = poses['val']['in'][:, 0, 3]
-    ys = poses['val']['in'][:, 1, 3]
-    zs = poses['val']['in'][:, 2, 3]
-    ax.scatter(xs, ys, zs, c='g', marker='s')
+    if poses['val']['in'].shape[0] > 0:
+        xs = poses['val']['in'][:, 0, 3]
+        ys = poses['val']['in'][:, 1, 3]
+        zs = poses['val']['in'][:, 2, 3]
+        ax.scatter(xs, ys, zs, c='g', marker='s')
 
-    xs = poses['val']['ex'][:, 0, 3]
-    ys = poses['val']['ex'][:, 1, 3]
-    zs = poses['val']['ex'][:, 2, 3]
-    ax.scatter(xs, ys, zs, c='b', marker='s')
+    if poses['val']['ex'].shape[0] > 0:
+        xs = poses['val']['ex'][:, 0, 3]
+        ys = poses['val']['ex'][:, 1, 3]
+        zs = poses['val']['ex'][:, 2, 3]
+        ax.scatter(xs, ys, zs, c='b', marker='s')
 
     if show_test:
         xs = poses['test'][:, 0, 3]
