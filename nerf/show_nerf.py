@@ -23,8 +23,8 @@ experiment_name = config['experiment_name']
 
 render_near = config['render_near'] if 'render_near' in config else 2.0
 render_far = config['render_far'] if 'render_far' in config else 6.0
-render_coarse_sample_num = render_more_sample * config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 64
-render_fine_sample_num = render_more_sample * config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 128
+render_coarse_sample_num = render_more_sample * (config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 64)
+render_fine_sample_num = render_more_sample * (config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 128)
 
 use_fine_model = config['use_fine_model'] if 'use_fine_model' in config else True
 
