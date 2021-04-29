@@ -6,7 +6,7 @@ from tqdm import tqdm, trange
 import imageio
 from data_loader import *
 from render import *
-from nerf import NeRF
+from nerf import NeRF, SirenNeRF
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
@@ -38,6 +38,7 @@ learning_rate_decay = config['learning_rate_decay'] if 'learning_rate_decay' in 
 start_up_itrs = config['start_up_itrs'] if 'start_up_itrs' in config else 500
 use_fine_model = config['use_fine_model'] if 'use_fine_model' in config else True
 use_alpha = config['use_alpha'] if 'use_alpha' in config else False
+use_siren = config['use_siren'] if 'use_siren' in config else False
 
 i_print = config['i_print'] if 'i_print' in config else 100
 i_save = config['i_save'] if 'i_save' in config else 10000
@@ -85,8 +86,12 @@ batch_num = int(np.ceil(rays_rgba.shape[0] / batch_size))
 print(f'Batching Finished: size={rays_rgba.shape}, batch_size={batch_size}, batch_num={batch_num}')
 
 # Model
-coarse_model = NeRF()
-fine_model = NeRF() if use_fine_model else coarse_model
+if use_siren:
+    coarse_model = SirenNeRF()
+    fine_model = SirenNeRF() if use_fine_model else coarse_model
+else:
+    coarse_model = NeRF()
+    fine_model = NeRF() if use_fine_model else coarse_model
 trainable_variables = list(coarse_model.parameters())
 if use_fine_model:
     trainable_variables += list(fine_model.parameters())

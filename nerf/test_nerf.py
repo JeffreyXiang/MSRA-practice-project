@@ -3,6 +3,7 @@ import os
 import sys
 import json
 from tqdm import tqdm
+import imageio
 from data_loader import *
 from render import *
 from nerf import NeRF
@@ -74,32 +75,45 @@ if use_fine_model:
 loss_fn_alex = lpips.LPIPS(net='alex')
 
 data = {
-    'dist_data': {'in': [], 'ex': []},
-    'psnr_data': {'in': [], 'ex': []},
-    'ssim_data': {'in': [], 'ex': []},
-    'lpips_data': {'in': [], 'ex': []},
+    'dist': {'train':[], 'in': [], 'ex': []},
+    'psnr': {'train':[], 'in': [], 'ex': []},
+    'ssim': {'train':[], 'in': [], 'ex': []},
+    'lpips': {'train':[], 'in': [], 'ex': []},
 }
 
-for p in ['in', 'ex']:
+data_images = []
+data_targets = []
+
+for p in ['train', 'in', 'ex']:
     print(f'Testing {p}terpolate...')
-    for pose, target in tqdm(zip(poses['val'][p], images['val'][p])):
+    for pose, target in tqdm(zip(poses['train'], images['train']) if p == 'train' else zip(poses['val'][p], images['val'][p])):
         with torch.no_grad():
-            image = render_image(width, height, focal, pose, render_near, render_far,
+            image, _, _ = render_image(width, height, focal, pose, render_near, render_far,
                                  coarse_model, fine_model,
                                  render_coarse_sample_num, render_fine_sample_num
                                  )
-            image = torch.tensor(image).permute(2, 0, 1)
-            target = torch.tensor(target).permute(2, 0, 1)
+            data_images.append(image)
+            data_targets.append(target[..., :3])
+            image = torch.tensor(image).permute(2, 0, 1).unsqueeze(0)
+            target = torch.tensor(target[..., :3]).permute(2, 0, 1).unsqueeze(0)
             _, theta, phi = transform_matrix_to_camera_pos(pose)
+            dist = max(abs(theta), abs(phi)) if abs(theta) < 90 else 180 - max(180 - abs(theta), abs(phi))
             mse = torch.mean((image - target)**2)
             psnr = -10 * torch.log10(mse).item()
             ssim = pytorch_ssim.ssim(image, target).item()
             lpips = loss_fn_alex(image, target).item()
-            data['dist_data'][p].append(max(theta, phi))
-            data['psnr_data'][p].append(psnr)
-            data['ssim_data'][p].append(ssim)
-            data['lpips_data'][p].append(lpips)
+            data['dist'][p].append(dist)
+            data['psnr'][p].append(psnr)
+            data['ssim'][p].append(ssim)
+            data['lpips'][p].append(lpips)
+            tqdm.write(f"[Test] DIST: {dist} PSNR: {psnr} SSIM: {ssim} LPIPS: {lpips}")
 
 test_file_path = os.path.join(log_path, 'test.json')
 with open(test_file_path, 'w') as test_file:
     json.dump(data, test_file)
+print('Test data write to:', test_file_path)
+
+test_image_path = os.path.join(log_path, 'test.jpg')
+data_image = np.concatenate([np.concatenate(data_images, 0), np.concatenate(data_targets, 0)], 1)
+imageio.imwrite(test_image_path, to8b(data_image))
+print('Test image write to:', test_image_path)

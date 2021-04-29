@@ -18,7 +18,7 @@
     "learning_rate_decay": 500,
     "start_up_itrs": 500,
     "use_fine_model": true,
-    "use_alpha": true,
+    "use_alpha": false,
     
     "i_print": 100,
     "i_save": 10000,

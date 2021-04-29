@@ -121,6 +121,10 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, tar
                 type_images.append(np.array(image, dtype=np.float32))
                 type_poses.append(blender_coord @ np.array(frame['transform_matrix'], dtype=np.float32))
             elif t == 'val':
+                file_name = os.path.join(file_path, frame['file_path'] + '.png')
+                image = Image.open(file_name)
+                if resize != 1:
+                    image = image.resize((int(resize * image.width), int(resize * image.height)), Image.ANTIALIAS)
                 type_images_.append(np.array(image, dtype=np.float32))
                 type_poses_.append(blender_coord @ np.array(frame['transform_matrix'], dtype=np.float32))
 
@@ -149,32 +153,32 @@ def load_blender_data(file_path, resize=1, test_skip=1, view_dir_range=None, tar
     return images, poses, width, height, focal, train_idx_res
 
 
-def show_data_distribution(poses, show_test=False):
+def show_data_distribution(poses, show_test=False, save_name=None):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
     xs = poses['train'][:, 0, 3]
     ys = poses['train'][:, 1, 3]
     zs = poses['train'][:, 2, 3]
-    ax.scatter(xs, ys, zs, c='r', marker='o')
+    ax.scatter(xs, ys, zs, c='m', marker='o', s=5, label='train')
 
     if poses['val']['in'].shape[0] > 0:
         xs = poses['val']['in'][:, 0, 3]
         ys = poses['val']['in'][:, 1, 3]
         zs = poses['val']['in'][:, 2, 3]
-        ax.scatter(xs, ys, zs, c='g', marker='s')
+        ax.scatter(xs, ys, zs, c='g', marker='s', s=5, label='val_in')
 
     if poses['val']['ex'].shape[0] > 0:
         xs = poses['val']['ex'][:, 0, 3]
         ys = poses['val']['ex'][:, 1, 3]
         zs = poses['val']['ex'][:, 2, 3]
-        ax.scatter(xs, ys, zs, c='b', marker='s')
+        ax.scatter(xs, ys, zs, c='b', marker='s', s=5, label='val_ex')
 
     if show_test:
         xs = poses['test'][:, 0, 3]
         ys = poses['test'][:, 1, 3]
         zs = poses['test'][:, 2, 3]
-        ax.scatter(xs, ys, zs, c='y', marker='^')
+        ax.scatter(xs, ys, zs, c='y', marker='^', s=5, label='test')
 
     ax.set_xlim([-5, 5])
     ax.set_ylim([-5, 5])
@@ -182,7 +186,12 @@ def show_data_distribution(poses, show_test=False):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    plt.subplots_adjust(0.1, 0.1, 0.9, 0.9)
+    plt.gcf().set_size_inches(4, 4)
+    plt.legend()
 
-    ax.view_init(elev=90, azim=-90)
+    ax.view_init(elev=120, azim=-90)
 
+    if save_name is not None:
+        plt.savefig(f'./logs/{save_name}/distribution.png', dpi=600)
     plt.show()
