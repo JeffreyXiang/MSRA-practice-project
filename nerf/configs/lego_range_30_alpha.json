@@ -1,0 +1,26 @@
+{
+    "output_path": "./logs/",
+    "experiment_name": "lego_range_30_alpha",
+    "data_path": "../../nerf-pytorch/data/nerf_synthetic/lego",
+    "data_resize": 0.5,
+    "data_skip": 8,
+    "data_view_dir_range": [[-30, 30, -30, 30]],
+    "data_show_distribution": false,
+    
+    "render_near": 2.0,
+    "render_far": 6.0,
+    "render_coarse_sample_num": 64,
+    "render_fine_sample_num": 128,
+    
+    "iterations": 200000,
+    "batch_size": 1024,
+    "learning_rate": 5e-4,
+    "learning_rate_decay": 500,
+    "start_up_itrs": 500,
+    "use_fine_model": true,
+    "use_alpha": true,
+    
+    "i_print": 100,
+    "i_save": 10000,
+    "i_video": 1000
+}

@@ -6,7 +6,7 @@ from tqdm import tqdm
 import imageio
 from data_loader import *
 from render import *
-from nerf import NeRF
+from nerf import NeRF, SirenNeRF
 import pytorch_ssim
 import lpips
 
@@ -35,6 +35,7 @@ render_coarse_sample_num = render_more_sample * (config['render_coarse_sample_nu
 render_fine_sample_num = render_more_sample * (config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 128)
 
 use_fine_model = config['use_fine_model'] if 'use_fine_model' in config else True
+use_siren = config['use_siren'] if 'use_siren' in config else False
 
 """=============== START ==============="""
 
@@ -58,8 +59,12 @@ print('Data Loaded:\n'
       )
 
 # Model
-coarse_model = NeRF()
-fine_model = NeRF() if use_fine_model else coarse_model
+if use_siren:
+    coarse_model = SirenNeRF()
+    fine_model = SirenNeRF() if use_fine_model else coarse_model
+else:
+    coarse_model = NeRF()
+    fine_model = NeRF() if use_fine_model else coarse_model
 
 # Load log directory
 log_path = os.path.join(output_path, experiment_name)
