@@ -87,9 +87,9 @@ def show_similarity(data, label, data2=None, label2=None, show_train=False):
     plt.savefig(f'./logs/{log1}/similarity.png', dpi=600)
     plt.show()
 
-log1 = 'lego_num_5'
-log2 = None
-label1 = 'val'
+log1 = 'lego_range_3_30'
+log2 = log1 + '_alpha'
+label1 = 'no_alpha'
 label2 = 'with_alpha'
 data1 = None
 data2 = None

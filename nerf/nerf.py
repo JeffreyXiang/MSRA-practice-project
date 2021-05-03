@@ -110,7 +110,7 @@ class Siren(torch.nn.Linear):
         return torch.sin(super(Siren, self).forward(input_tensor))
 
     def reset_parameters(self) -> None:
-        torch.nn.init.xavier_uniform_(self.weight, gain=1)
+        torch.nn.init.xavier_uniform_(self.weight, gain=np.sqrt(2))
         if self.bias is not None:
             torch.nn.init.zeros_(self.bias)
 
