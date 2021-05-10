@@ -97,16 +97,12 @@ class ReLUMLP(torch.nn.Module):
 
     def __init__(self, input_dim, output_dim, hidden_dim, hidden_layers):
         super(ReLUMLP, self).__init__()
-        self.input_layer = Dense(input_dim, hidden_dim, activation='rule')
-        torch.nn.init.uniform_(self.input_layer.weight, -1 / input_dim, 1 / input_dim)
+        self.input_layer = Dense(input_dim, hidden_dim, activation='relu')
         self.hidden_layers = []
         for i in range(hidden_layers):
-            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='rule'))
-            torch.nn.init.uniform_(self.hidden_layers[i].weight, -np.sqrt(6 / hidden_dim) / 30,
-                                   np.sqrt(6 / hidden_dim) / 30)
+            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='relu'))
         self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
         self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
-        torch.nn.init.uniform_(self.output_layer.weight, -np.sqrt(6 / hidden_dim) / 30, np.sqrt(6 / hidden_dim) / 30)
 
     def forward(self, input_tensor):
         h = self.input_layer(input_tensor)
