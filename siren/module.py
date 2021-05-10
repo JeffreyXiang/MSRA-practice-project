@@ -17,10 +17,12 @@ class Dense(torch.nn.Linear):
         super(Dense, self).__init__(input_dim, output_dim)
 
     def forward(self, input_tensor):
+        output = input_tensor.matmul(self.weight.permute(-1, -2))
+        output += self.bias.unsqueeze(-2)
         if self.activation is not None:
-            return self.activation(super(Dense, self).forward(input_tensor))
+            return self.activation(output)
         else:
-            return super(Dense, self).forward(input_tensor)
+            return output
 
     def reset_parameters(self) -> None:
         torch.nn.init.xavier_uniform_(self.weight, gain=torch.nn.init.calculate_gain(self.activation_name))
@@ -43,12 +45,9 @@ class Siren(torch.nn.Linear):
         super(Siren, self).__init__(input_dim, output_dim)
 
     def forward(self, input_tensor):
-        return torch.sin(super(Siren, self).forward(input_tensor))
-
-    def reset_parameters(self) -> None:
-        torch.nn.init.uniform_(self.weight, -np.sqrt(6 / self.input_dim) / 30, np.sqrt(6 / self.input_dim) / 30)
-        if self.bias is not None:
-            torch.nn.init.zeros_(self.bias)
+        output = input_tensor.matmul(self.weight.permute(-1, -2))
+        output += self.bias.unsqueeze(-2)
+        return torch.sin(30 * output)
 
 
 class PositionalEncoding:
@@ -77,30 +76,41 @@ class SirenMLP(torch.nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dim, hidden_layers):
         super(SirenMLP, self).__init__()
         self.input_layer = Siren(input_dim, hidden_dim)
-        self.hidden_layers = [Siren(hidden_dim, hidden_dim) for i in range(hidden_layers)]
-        self.output_layer = Dense(hidden_dim, output_dim, activation='sigmoid')
         torch.nn.init.uniform_(self.input_layer.weight, -1 / input_dim, 1 / input_dim)
+        self.hidden_layers = []
+        for i in range(hidden_layers):
+            self.hidden_layers.append(Siren(hidden_dim, hidden_dim))
+            torch.nn.init.uniform_(self.hidden_layers[i].weight, -np.sqrt(6 / hidden_dim) / 30, np.sqrt(6 / hidden_dim) / 30)
+        self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
+        self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
+        torch.nn.init.uniform_(self.output_layer.weight, -np.sqrt(6 / hidden_dim) / 30, np.sqrt(6 / hidden_dim) / 30)
 
     def forward(self, input_tensor):
         h = self.input_layer(input_tensor)
-        for hidden_layer in self.hidden_layers:
-            h = hidden_layer(h)
+        h = self.hidden_layers(h)
         output_tensor = self.output_layer(h)
         return output_tensor
 
 
 class ReLUMLP(torch.nn.Module):
     """Multi Layer Perceptron using Siren"""
+
     def __init__(self, input_dim, output_dim, hidden_dim, hidden_layers):
         super(ReLUMLP, self).__init__()
-        self.input_layer = Dense(input_dim, hidden_dim, activation='relu')
-        self.hidden_layers = [Dense(hidden_dim, hidden_dim, activation='relu') for i in range(hidden_layers)]
-        self.output_layer = Dense(hidden_dim, output_dim, activation='sigmoid')
+        self.input_layer = Dense(input_dim, hidden_dim, activation='rule')
+        torch.nn.init.uniform_(self.input_layer.weight, -1 / input_dim, 1 / input_dim)
+        self.hidden_layers = []
+        for i in range(hidden_layers):
+            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='rule'))
+            torch.nn.init.uniform_(self.hidden_layers[i].weight, -np.sqrt(6 / hidden_dim) / 30,
+                                   np.sqrt(6 / hidden_dim) / 30)
+        self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
+        self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
+        torch.nn.init.uniform_(self.output_layer.weight, -np.sqrt(6 / hidden_dim) / 30, np.sqrt(6 / hidden_dim) / 30)
 
     def forward(self, input_tensor):
         h = self.input_layer(input_tensor)
-        for hidden_layer in self.hidden_layers:
-            h = hidden_layer(h)
+        h = self.hidden_layers(h)
         output_tensor = self.output_layer(h)
         return output_tensor
 

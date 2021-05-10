@@ -5,7 +5,7 @@ to8b = lambda x: (255*np.clip(x, 0, 1)).astype(np.uint8)
 
 def render_image(model, width, height, chunk=8192):
     with torch.no_grad():
-        pos = np.meshgrid(np.array(list(range(width))) / width, np.array(list(range(height))) / height)
+        pos = np.meshgrid(np.array(list(range(width))) / width - 0.5, np.array(list(range(height))) / height - 0.5)
         pos = np.concatenate([pos[0].reshape((-1, 1)), pos[1].reshape((-1, 1))], axis=1)
         pos = torch.tensor(pos, dtype=torch.float, device='cuda')
         rgb = np.zeros((width * height, 1), dtype=float)

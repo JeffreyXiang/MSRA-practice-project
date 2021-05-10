@@ -6,30 +6,30 @@ import imageio
 from matplotlib import pyplot as plt
 from module import SirenMLP, ReLUMLP
 from test_img import render_image, to8b
+import modules
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 """=============== GLOBAL ARGUMENTS ==============="""
 output_path = './logs/'
-experiment_name = 'ReLU'
+experiment_name = 'Siren'
 
-iterations = 100000
-batch_size = 8192
-learning_rate = 1e-3
-learning_rate_decay = 500
+iterations = 10000
+batch_size = 65536
+learning_rate = 1e-4
 
 i_print = 100
 i_save = 10000
 i_image = 1000
 
 """=============== LOAD DATA ==============="""
-image = imageio.imread('./data/image/lenna.jpg')
+image = imageio.imread('./data/image/cameraman.jpg')
 image = image.astype(float) / 255
-image = image[..., :1]
+image = np.expand_dims(image, 2)
 height, width = image.shape[:2]
 
 rgb = image.reshape((-1, 1))
-pos = np.meshgrid(np.array(list(range(width))) / width, np.array(list(range(height))) / height)
+pos = np.meshgrid(np.linspace(-1, 1, width), np.linspace(-1, 1, height))
 pos = np.concatenate([pos[0].reshape((-1, 1)), pos[1].reshape((-1, 1))], axis=1)
 pos_rgb = np.concatenate([pos, rgb], axis=1)
 np.random.shuffle(pos_rgb)
@@ -38,9 +38,11 @@ pos_rgb_tensor = torch.tensor(pos_rgb, dtype=torch.float, device='cuda')
 
 """=============== START ==============="""
 # Model
-model = ReLUMLP(2, 1, 256, 3)
-trainable_variables = list(model.parameters())
-optimizer = torch.optim.Adam(params=trainable_variables, lr=learning_rate, betas=(0.9, 0.999))
+# model = modules.SingleBVPNet(type='sine', mode='mlp')
+model = SirenMLP(2, 1, 256, 3)
+for name, param in model.named_parameters():
+    print(name)
+optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
 
 # Load log directory
 log_path = os.path.join(output_path, experiment_name)
@@ -63,26 +65,21 @@ batch_idx = 0
 epoch_idx = 0
 for global_step in trange(global_step + 1, iterations + 1):
     batch_pos_rgb = pos_rgb_tensor[batch_idx * batch_size : (batch_idx + 1) * batch_size]
-    if (batch_idx + 1) * batch_size >= pos_rgb.shape[0]:
-        batch_idx = 0
-        epoch_idx += 1
-        np.random.shuffle(pos_rgb)
-        pos_rgb_tensor = torch.tensor(pos_rgb, dtype=torch.float, device='cuda')
     batch_idx += 1
     batch_pos = batch_pos_rgb[:, :2]
     batch_rgb = batch_pos_rgb[:, -1:]
+    if batch_idx * batch_size >= pos_rgb.shape[0]:
+        batch_idx = 0
+        epoch_idx += 1
+        # shuffle_idx = torch.randperm(batch_pos_rgb.shape[0])
+        # batch_pos_rgb = batch_pos_rgb[shuffle_idx]
 
     rgb_pred = model(batch_pos)
     loss = torch.mean((batch_rgb - rgb_pred)**2)
     psnr = -10 * torch.log10(loss)
+    optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-
-    decay_rate = 0.1
-    decay_steps = learning_rate_decay * 1000
-    new_learning_rate = learning_rate * (decay_rate ** (global_step / decay_steps))
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = new_learning_rate
 
     if global_step % i_print == 0:
         tqdm.write(f"[Train] Iter: {global_step}({epoch_idx}-{batch_idx}) Loss: {loss.item()} PSNR: {psnr.item()}")
