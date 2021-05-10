@@ -95,10 +95,10 @@ class NeRF(torch.nn.Module):
 
 
 class Siren(torch.nn.Linear):
-    """Dense layer: Linear layer and an activation"""
+    """Siren layer: Linear layer and sine activation"""
     def __init__(self, input_dim: int, output_dim: int) -> None:
         """
-        Initialize a Dense layer
+        Initialize a Siren layer
 
         :param input_dim: input dimension
         :param output_dim: output dimension
@@ -110,7 +110,7 @@ class Siren(torch.nn.Linear):
         return torch.sin(super(Siren, self).forward(input_tensor))
 
     def reset_parameters(self) -> None:
-        torch.nn.init.xavier_uniform_(self.weight, gain=np.sqrt(2))
+        torch.nn.init.uniform_(self.weight, -np.sqrt(6 / self.input_dim) / 30, np.sqrt(6 / self.input_dim) / 30)
         if self.bias is not None:
             torch.nn.init.zeros_(self.bias)
 

@@ -7,6 +7,9 @@
 *.dae
 data/*
 nerf/logs/*
+siren/data/*
+siren/logs/*
 .vscode/
 .idea/
 nerf_python/
+siren-master/
