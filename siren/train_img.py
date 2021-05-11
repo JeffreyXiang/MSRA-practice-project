@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm, trange
 import imageio
 from matplotlib import pyplot as plt
-from module import SirenMLP, ReLUMLP
+from module import img_model
 from test_img import render_image, to8b
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -44,10 +44,7 @@ pos_rgb_tensor = torch.tensor(pos_rgb, dtype=torch.float, device='cuda')
 
 """=============== START ==============="""
 # Model
-if model_type == 'siren':
-    model = SirenMLP(2, 1, 256, 3)
-elif model_type == 'relu':
-    model = ReLUMLP(2, 1, 256, 3)
+model = img_model(model_type)
 for name, param in model.named_parameters():
     print(name)
 optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)

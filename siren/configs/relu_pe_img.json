@@ -1,0 +1,13 @@
+{
+    "output_path": "./logs/",
+    "experiment_name": "relu_pe_img",
+    
+    "iterations": 10000,
+    "batch_size": 65536,
+    "learning_rate": 1e-4,
+    "model_type": "relu_pe",
+    
+    "i_print": 100,
+    "i_save": 10000,
+    "i_image": 1000
+}

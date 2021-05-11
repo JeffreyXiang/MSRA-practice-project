@@ -92,8 +92,27 @@ class SirenMLP(torch.nn.Module):
         return output_tensor
 
 
+class TanhMLP(torch.nn.Module):
+    """Multi Layer Perceptron using tanh"""
+
+    def __init__(self, input_dim, output_dim, hidden_dim, hidden_layers):
+        super(TanhMLP, self).__init__()
+        self.input_layer = Dense(input_dim, hidden_dim, activation='tanh')
+        self.hidden_layers = []
+        for i in range(hidden_layers):
+            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='tanh'))
+        self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
+        self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
+
+    def forward(self, input_tensor):
+        h = self.input_layer(input_tensor)
+        h = self.hidden_layers(h)
+        output_tensor = self.output_layer(h)
+        return output_tensor
+
+
 class ReLUMLP(torch.nn.Module):
-    """Multi Layer Perceptron using Siren"""
+    """Multi Layer Perceptron using relu"""
 
     def __init__(self, input_dim, output_dim, hidden_dim, hidden_layers):
         super(ReLUMLP, self).__init__()
@@ -109,4 +128,36 @@ class ReLUMLP(torch.nn.Module):
         h = self.hidden_layers(h)
         output_tensor = self.output_layer(h)
         return output_tensor
+
+
+class ReLUPEMLP(torch.nn.Module):
+    """Multi Layer Perceptron using relu p.e."""
+
+    def __init__(self, input_dim, output_dim, hidden_dim, hidden_layers):
+        super(ReLUPEMLP, self).__init__()
+        self.pe = PositionalEncoding(input_dim, 10)
+        self.input_layer = Dense(self.pe.output_dim, hidden_dim, activation='relu')
+        self.hidden_layers = []
+        for i in range(hidden_layers):
+            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='relu'))
+        self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
+        self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
+
+    def forward(self, input_tensor):
+        h = self.pe(input_tensor)
+        h = self.input_layer(h)
+        h = self.hidden_layers(h)
+        output_tensor = self.output_layer(h)
+        return output_tensor
+
+
+def img_model(model_type):
+    if model_type == 'siren':
+        return SirenMLP(2, 1, 256, 3)
+    elif model_type == 'tanh':
+        return TanhMLP(2, 1, 256, 3)
+    elif model_type == 'relu':
+        return ReLUMLP(2, 1, 256, 3)
+    elif model_type == 'relu_pe':
+        return ReLUPEMLP(2, 1, 256, 3)
 
