@@ -1,4 +1,6 @@
 import os
+import sys
+import json
 import torch
 import numpy as np
 from tqdm import tqdm, trange
@@ -6,21 +8,25 @@ import imageio
 from matplotlib import pyplot as plt
 from module import SirenMLP, ReLUMLP
 from test_img import render_image, to8b
-import modules
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 """=============== GLOBAL ARGUMENTS ==============="""
-output_path = './logs/'
-experiment_name = 'Siren'
+config_filepath = sys.argv[1]
+with open(config_filepath, 'r') as config_file:
+    config = json.load(config_file)
 
-iterations = 10000
-batch_size = 65536
-learning_rate = 1e-4
+output_path = config['output_path']
+experiment_name = config['experiment_name']
 
-i_print = 100
-i_save = 10000
-i_image = 1000
+iterations = config['iterations'] if 'iterations' in config else 10000
+batch_size = config['batch_size'] if 'batch_size' in config else 65536
+learning_rate = config['learning_rate'] if 'learning_rate' in config else 1e-4
+model_type = config['model_type'] if 'model_type' in config else 'siren'
+
+i_print = config['i_print'] if 'i_print' in config else 100
+i_save = config['i_save'] if 'i_save' in config else 10000
+i_image = config['i_image'] if 'i_image' in config else 1000
 
 """=============== LOAD DATA ==============="""
 image = imageio.imread('./data/image/cameraman.jpg')
@@ -38,8 +44,10 @@ pos_rgb_tensor = torch.tensor(pos_rgb, dtype=torch.float, device='cuda')
 
 """=============== START ==============="""
 # Model
-# model = modules.SingleBVPNet(type='sine', mode='mlp')
-model = SirenMLP(2, 1, 256, 3)
+if model_type == 'siren':
+    model = SirenMLP(2, 1, 256, 3)
+elif model_type == 'relu':
+    model = ReLUMLP(2, 1, 256, 3)
 for name, param in model.named_parameters():
     print(name)
 optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate)
@@ -61,6 +69,7 @@ else:
     global_step = 0
 
 # Trainning
+log_data = {'loss': [], 'psnr': []}
 batch_idx = 0
 epoch_idx = 0
 for global_step in trange(global_step + 1, iterations + 1):
@@ -81,6 +90,9 @@ for global_step in trange(global_step + 1, iterations + 1):
     loss.backward()
     optimizer.step()
 
+    log_data['loss'].append(loss.item())
+    log_data['psnr'].append(psnr.item())
+
     if global_step % i_print == 0:
         tqdm.write(f"[Train] Iter: {global_step}({epoch_idx}-{batch_idx}) Loss: {loss.item()} PSNR: {psnr.item()}")
     if global_step % i_image == 0:
@@ -97,3 +109,6 @@ for global_step in trange(global_step + 1, iterations + 1):
         }, path)
         tqdm.write(f'Saved checkpoints at {path}')
 
+log_data_path = os.path.join(log_path, 'log.npy')
+print(f'log data save to: {log_data_path}')
+np.save(log_data_path, log_data)

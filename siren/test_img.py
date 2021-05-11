@@ -3,7 +3,7 @@ import numpy as np
 
 to8b = lambda x: (255*np.clip(x, 0, 1)).astype(np.uint8)
 
-def render_image(model, width, height, chunk=8192):
+def render_image(model, width, height, chunk=65536):
     with torch.no_grad():
         pos = np.meshgrid(np.linspace(-1, 1, width), np.linspace(-1, 1, height))
         pos = np.concatenate([pos[0].reshape((-1, 1)), pos[1].reshape((-1, 1))], axis=1)
