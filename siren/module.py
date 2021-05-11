@@ -100,7 +100,7 @@ class TanhMLP(torch.nn.Module):
         self.input_layer = Dense(input_dim, hidden_dim, activation='tanh')
         self.hidden_layers = []
         for i in range(hidden_layers):
-            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='tanh'))
+            self.hidden_layers.append(Dense(hidden_dim, hidden_dim, activation='tanh'))
         self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
         self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
 
@@ -119,7 +119,7 @@ class ReLUMLP(torch.nn.Module):
         self.input_layer = Dense(input_dim, hidden_dim, activation='relu')
         self.hidden_layers = []
         for i in range(hidden_layers):
-            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='relu'))
+            self.hidden_layers.append(Dense(hidden_dim, hidden_dim, activation='relu'))
         self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
         self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
 
@@ -139,7 +139,7 @@ class ReLUPEMLP(torch.nn.Module):
         self.input_layer = Dense(self.pe.output_dim, hidden_dim, activation='relu')
         self.hidden_layers = []
         for i in range(hidden_layers):
-            self.hidden_layers.append(Dense(input_dim, hidden_dim, activation='relu'))
+            self.hidden_layers.append(Dense(hidden_dim, hidden_dim, activation='relu'))
         self.hidden_layers = torch.nn.Sequential(*self.hidden_layers)
         self.output_layer = Dense(hidden_dim, output_dim, activation='linear')
 

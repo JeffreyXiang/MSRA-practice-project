@@ -98,16 +98,20 @@ class Siren(torch.nn.Linear):
     """Siren layer: Linear layer and sine activation"""
     def __init__(self, input_dim: int, output_dim: int) -> None:
         """
-        Initialize a Siren layer
+        Initialize a Dense layer
 
         :param input_dim: input dimension
         :param output_dim: output dimension
         :param activation: non-linear activation
         """
+        self.input_dim = input_dim
+        self.output_dim = output_dim
         super(Siren, self).__init__(input_dim, output_dim)
 
     def forward(self, input_tensor):
-        return torch.sin(super(Siren, self).forward(input_tensor))
+        output = input_tensor.matmul(self.weight.permute(-1, -2))
+        output += self.bias.unsqueeze(-2)
+        return torch.sin(30 * output)
 
     def reset_parameters(self) -> None:
         torch.nn.init.uniform_(self.weight, -np.sqrt(6 / self.input_dim) / 30, np.sqrt(6 / self.input_dim) / 30)
@@ -129,6 +133,7 @@ class SirenNeRF(torch.nn.Module):
             Siren(256, 256),
             Siren(256, 256)
         ])
+        torch.nn.init.uniform_(self.layers_pos[0].weight, -1 / 3, 1 / 3)
         self.layers_dir = torch.nn.ModuleList([
             Dense(256, 256, activation='linear'),
             Siren(256 + 3, 128),
