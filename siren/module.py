@@ -161,3 +161,14 @@ def img_model(model_type):
     elif model_type == 'relu_pe':
         return ReLUPEMLP(2, 1, 256, 3)
 
+def sdf_model(model_type):
+    if model_type == 'siren':
+        return SirenMLP(3, 1, 256, 3)
+    elif model_type == 'tanh':
+        return TanhMLP(3, 1, 256, 3)
+    elif model_type == 'relu':
+        return ReLUMLP(3, 1, 256, 3)
+    elif model_type == 'relu_pe':
+        return ReLUPEMLP(3, 1, 256, 3)
+
+

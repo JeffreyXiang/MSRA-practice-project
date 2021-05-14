@@ -1,0 +1,12 @@
+{
+    "output_path": "./logs/",
+    "experiment_name": "siren_sdf",
+    
+    "iterations": 100000,
+    "batch_size": 65536,
+    "learning_rate": 1e-4,
+    "model_type": "siren",
+    
+    "i_print": 100,
+    "i_save": 10000,
+}

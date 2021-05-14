@@ -1,16 +1,37 @@
 import torch
+import os
+import imageio
 import numpy as np
+from matplotlib import pyplot as plt
 
-to8b = lambda x: (255*np.clip(x, 0, 1)).astype(np.uint8)
+log_path = '.\logs'
+log_exp = ['siren_img', 'siren_img_1', 'tanh_img', 'relu_img', 'relu_pe_img']
+log_label = ['SIREN', 'SIREN\'', 'Tanh', 'ReLU', 'ReLU P.E.']
+log_img = {exp: [] for exp in log_exp}
+log_psnr = {exp: None for exp in log_exp}
 
-def render_image(model, width, height, chunk=65536):
-    with torch.no_grad():
-        pos = np.meshgrid(np.linspace(-1, 1, width), np.linspace(-1, 1, height))
-        pos = np.concatenate([pos[0].reshape((-1, 1)), pos[1].reshape((-1, 1))], axis=1)
-        pos = torch.tensor(pos, dtype=torch.float, device='cuda')
-        rgb = np.zeros((width * height, 1), dtype=float)
-        for i in range(0, width * height, chunk):
-            chunk_pos = pos[i:i + chunk]
-            rgb[i:i + chunk] = model(chunk_pos).cpu().numpy()
-        rgb = rgb.reshape((height, width, 1))
-    return rgb
+for exp, label in zip(log_exp, log_label):
+    path = os.path.join(log_path, exp)
+    for f in sorted(os.listdir(path)):
+        if 'png' in f:
+            f = os.path.join(path, f)
+            print(f)
+            log_img[exp].append(imageio.imread(f))
+        if 'npy' in f:
+            f = os.path.join(path, f)
+            print(f)
+            log_psnr[exp] = np.load(f, allow_pickle=True).item()['psnr']
+    log_img[exp] = np.concatenate(log_img[exp], 1)
+    plt.plot(log_psnr[exp], label=label)
+
+demo_img = np.concatenate([log_img[exp] for exp in log_exp], 0)
+imageio.imwrite('demo.png', demo_img)
+
+plt.title('PSNR-Iters Diagram')
+plt.xlabel('Iterations')
+plt.ylabel('PSNR')
+plt.grid()
+plt.legend()
+plt.savefig('figure.png', dpi=600)
+plt.show()
+
