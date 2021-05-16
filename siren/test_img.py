@@ -25,13 +25,13 @@ for exp, label in zip(log_exp, log_label):
     plt.plot(log_psnr[exp], label=label)
 
 demo_img = np.concatenate([log_img[exp] for exp in log_exp], 0)
-imageio.imwrite('demo.png', demo_img)
+imageio.imwrite('./logs/img_demo.png', demo_img)
 
 plt.title('PSNR-Iters Diagram')
 plt.xlabel('Iterations')
 plt.ylabel('PSNR')
 plt.grid()
 plt.legend()
-plt.savefig('figure.png', dpi=600)
+plt.savefig('./logs/img_figure.png', dpi=600)
 plt.show()
 

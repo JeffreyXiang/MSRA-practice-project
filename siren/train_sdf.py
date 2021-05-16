@@ -15,6 +15,7 @@ config_filepath = sys.argv[1]
 with open(config_filepath, 'r') as config_file:
     config = json.load(config_file)
 
+data_path = config['data_path']
 output_path = config['output_path']
 experiment_name = config['experiment_name']
 
@@ -25,9 +26,10 @@ model_type = config['model_type'] if 'model_type' in config else 'siren'
 
 i_print = config['i_print'] if 'i_print' in config else 100
 i_save = config['i_save'] if 'i_save' in config else 10000
+i_mesh = config['i_mesh'] if 'i_mesh' in config else 1000
 
 """=============== LOAD DATA ==============="""
-point_cloud = scipy.io.loadmat('./data/point_cloud/110f6dbf0e6216e9f9a63e9a8c332e52.mat')['p']
+point_cloud = scipy.io.loadmat(data_path)['p']
 point_cloud_tensor = torch.tensor(point_cloud, dtype=torch.float, device='cuda', requires_grad=True)
 
 """=============== START ==============="""
@@ -81,6 +83,9 @@ for global_step in trange(global_step + 1, iterations + 1):
 
     if global_step % i_print == 0:
         tqdm.write(f"[Train] Iter: {global_step}({epoch_idx}-{batch_idx}) Loss: {loss.item()}")
+    if global_step % i_mesh == 0:
+        filename = os.path.join(log_path, '{:06d}'.format(global_step))
+        create_mesh(model, filename, N=128, max_batch=65536)
     if global_step % i_save == 0:
         path = os.path.join(output_path, experiment_name, '{:06d}.tar'.format(global_step))
         torch.save({
@@ -93,4 +98,4 @@ for global_step in trange(global_step + 1, iterations + 1):
 log_data_path = os.path.join(log_path, 'log.npy')
 print(f'log data save to: {log_data_path}')
 np.save(log_data_path, log_data)
-
+create_mesh(model, os.path.join(log_path, 'test'), N=512, max_batch=65536)

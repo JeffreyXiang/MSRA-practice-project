@@ -1,9 +1,11 @@
 import torch
+import os
 import numpy as np
 import time
 import logging
 import plyfile
 import skimage.measure
+import imageio
 
 def load_batch(data, batch_idx, batch_size):
     on_point = data[batch_idx * batch_size : (batch_idx + 1) * batch_size]
@@ -154,4 +156,3 @@ def convert_sdf_samples_to_ply(
             time.time() - start_time
         )
     )
-
