@@ -1,11 +1,9 @@
 import torch
-import os
 import numpy as np
 import time
 import logging
 import plyfile
 import skimage.measure
-import imageio
 
 def load_batch(data, batch_idx, batch_size):
     on_point = data[batch_idx * batch_size : (batch_idx + 1) * batch_size]
@@ -42,8 +40,8 @@ def create_mesh(
     # transform first 3 columns
     # to be the x, y, z index
     samples[:, 2] = overall_index % N
-    samples[:, 1] = (overall_index.long() / N) % N
-    samples[:, 0] = ((overall_index.long() / N) / N) % N
+    samples[:, 1] = torch.floor_divide(overall_index.long(), N) % N
+    samples[:, 0] = torch.floor_divide(torch.floor_divide(overall_index.long(), N), N) % N
 
     # transform first 3 columns
     # to be the x, y, z coordinate
@@ -156,3 +154,4 @@ def convert_sdf_samples_to_ply(
             time.time() - start_time
         )
     )
+
