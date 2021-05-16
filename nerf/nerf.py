@@ -109,9 +109,7 @@ class Siren(torch.nn.Linear):
         super(Siren, self).__init__(input_dim, output_dim)
 
     def forward(self, input_tensor):
-        output = input_tensor.matmul(self.weight.permute(-1, -2))
-        output += self.bias.unsqueeze(-2)
-        return torch.sin(30 * output)
+        return torch.sin(30 * super(Siren, self).forward(input_tensor))
 
     def reset_parameters(self) -> None:
         torch.nn.init.uniform_(self.weight, -np.sqrt(6 / self.input_dim) / 30, np.sqrt(6 / self.input_dim) / 30)
@@ -133,13 +131,24 @@ class SirenNeRF(torch.nn.Module):
             Siren(256, 256),
             Siren(256, 256)
         ])
-        torch.nn.init.uniform_(self.layers_pos[0].weight, -1 / 3, 1 / 3)
+        torch.nn.init.uniform_(self.layers_pos[0].weight, -1 / 30, 1 / 30)
+#         torch.nn.init.uniform_(self.layers_pos[1].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
+#         torch.nn.init.uniform_(self.layers_pos[2].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
+#         torch.nn.init.uniform_(self.layers_pos[3].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
+#         torch.nn.init.uniform_(self.layers_pos[4].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
+#         torch.nn.init.uniform_(self.layers_pos[5].weight, -np.sqrt(6 / 259) / 30, np.sqrt(6 / 259) / 30)
+#         torch.nn.init.uniform_(self.layers_pos[6].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
+#         torch.nn.init.uniform_(self.layers_pos[7].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
         self.layers_dir = torch.nn.ModuleList([
             Dense(256, 256, activation='linear'),
             Siren(256 + 3, 128),
         ])
+#         torch.nn.init.uniform_(self.layers_dir[0].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
+#         torch.nn.init.uniform_(self.layers_dir[1].weight, -np.sqrt(6 / 259) / 30, np.sqrt(6 / 259) / 30)
         self.output_layer_sigma = Dense(256, 1, activation='relu')
         self.output_layer_rgb = Dense(128, 3, activation='sigmoid')
+#         torch.nn.init.uniform_(self.output_layer_sigma.weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
+#         torch.nn.init.uniform_(self.output_layer_rgb.weight, -np.sqrt(6 / 128) / 30, np.sqrt(6 / 128) / 30)
 
     def forward(self, input_tensor):
         input_pos, input_dir = torch.split(input_tensor, [3, 3], dim=-1)

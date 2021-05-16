@@ -1,6 +1,6 @@
 {
     "output_path": "./logs/",
-    "experiment_name": "lego_siren_1",
+    "experiment_name": "lego_siren",
     "data_path": "../../nerf-pytorch/data/nerf_synthetic/lego",
     "data_resize": 0.5,
     "data_skip": 8,
@@ -14,9 +14,9 @@
     
     "iterations": 200000,
     "batch_size": 1024,
-    "learning_rate": 5e-4,
+    "learning_rate": 1e-4,
     "learning_rate_decay": 500,
-    "start_up_itrs": 500,
+    "start_up_itrs": 0,
     "use_fine_model": true,
     "use_alpha": true,
     "use_siren": true,

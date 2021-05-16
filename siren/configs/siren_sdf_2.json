@@ -1,0 +1,14 @@
+{
+    "data_path": "./data/point_cloud/1022fe7dd03f6a4d4d5ad9f13ac9f4e7.mat",
+    "output_path": "./logs/",
+    "experiment_name": "siren_sdf_2",
+    
+    "iterations": 100000,
+    "batch_size": 65536,
+    "learning_rate": 1e-4,
+    "model_type": "siren",
+    
+    "i_print": 100,
+    "i_save": 10000,
+    "i_mesh": 1000
+}
