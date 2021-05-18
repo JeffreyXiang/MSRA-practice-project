@@ -48,8 +48,11 @@ dataset = DataLoader(data_path, batch_size, resize=resolution/64, preload=False)
 
 # Model
 generator = Generator(z_dim)
+generator = torch.nn.DataParallel(generator)
 renderer = Renderer(resolution, resolution, render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
+renderer = torch.nn.DataParallel(renderer)
 discriminator = Discriminator(resolution)
+discriminator = torch.nn.DataParallel(discriminator)
 g_optimizer = torch.optim.Adam(params=generator.parameters(), lr=generator_lr, betas=(0, 0.9))
 d_optimizer = torch.optim.Adam(params=discriminator.parameters(), lr=discriminator_lr, betas=(0, 0.9))
 summary_module(generator)
