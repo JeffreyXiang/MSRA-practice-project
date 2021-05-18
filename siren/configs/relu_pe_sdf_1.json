@@ -1,0 +1,14 @@
+{
+    "data_path": "./data/point_cloud/110f6dbf0e6216e9f9a63e9a8c332e52.mat",
+    "output_path": "./logs/",
+    "experiment_name": "relu_pe_sdf_1",
+    
+    "iterations": 100000,
+    "batch_size": 65536,
+    "learning_rate": 1e-4,
+    "model_type": "relu_pe",
+    
+    "i_print": 100,
+    "i_save": 10000,
+    "i_mesh": 1000
+}
