@@ -5,7 +5,7 @@ import torch
 import scipy.io
 import numpy as np
 from tqdm import tqdm, trange
-from module import sdf_model
+from modules import sdf_model
 from utils_sdf import *
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')

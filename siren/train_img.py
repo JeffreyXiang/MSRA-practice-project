@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm, trange
 import imageio
 from matplotlib import pyplot as plt
-from module import img_model
+from modules import img_model
 from utils_img import render_image, to8b
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')

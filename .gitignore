@@ -9,6 +9,8 @@ data/*
 nerf/logs/*
 siren/data/*
 siren/logs/*
+pi_GAN/data/*
+pi_GAN/logs/*
 .vscode/
 .idea/
 nerf_python/
