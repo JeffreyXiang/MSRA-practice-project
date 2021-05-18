@@ -20,3 +20,22 @@ def loss_r1(y, x):
     gradients = gradients.reshape(batch_size, -1)
     res = torch.mean(gradients.norm(dim=-1) ** 2)
     return res
+
+@torch.no_grad()
+def save_demo(generator, renderer, file_name):
+    z = torch.randn(16, generator.input_dim, device='cuda')
+    nerf, film_params = generator(z)
+    gen_image = []
+    for i in range(film_params.shape[0]):
+        nerf.set_film_params(film_params[i])
+        gen_image.append(renderer(nerf).cpu().numpy())
+    gen_image_row = [
+        np.concatenate(gen_image[0:4], axis=1),
+        np.concatenate(gen_image[4:8], axis=1),
+        np.concatenate(gen_image[8:12], axis=1),
+        np.concatenate(gen_image[12:16], axis=1)
+    ]
+    demo_image = np.concatenate(gen_image_row, axis=0)
+    rgb = to8b(demo_image)
+    imageio.imsave(file_name, rgb)
+

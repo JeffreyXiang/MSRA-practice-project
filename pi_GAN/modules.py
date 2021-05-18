@@ -113,6 +113,7 @@ class Generator(torch.nn.Module):
 
     def __init__(self, input_dim=256):
         super(Generator, self).__init__()
+        self.input_dim = input_dim
         self.film_siren_nerf = FilmSirenNeRF()
         self.mapping_network = MappingNetwork(input_dim=input_dim)
 

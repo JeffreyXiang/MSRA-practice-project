@@ -84,7 +84,7 @@ for global_step in trange(start, iterations + 1):
     requires_grad(discriminator, True)
 
     # real
-    real_image = real_image.permute(0, 3, 1, 2)
+    real_image = real_image.permute(0, 3, 1, 2).contiguous()
     real_image.requires_grad = True
     real_label = discriminator(real_image)
 
@@ -96,7 +96,7 @@ for global_step in trange(start, iterations + 1):
         nerf.set_film_params(film_params[i])
         gen_image.append(renderer(nerf))
     gen_image = torch.stack(gen_image)
-    gen_image = gen_image.permute(0, 3, 1, 2)
+    gen_image = gen_image.permute(0, 3, 1, 2).contiguous()
     gen_label = discriminator(gen_image)
 
     # optimize
@@ -119,7 +119,7 @@ for global_step in trange(start, iterations + 1):
         nerf.set_film_params(film_params[i])
         gen_image.append(renderer(nerf))
     gen_image = torch.stack(gen_image)
-    gen_image = gen_image.permute(0, 3, 1, 2)
+    gen_image = gen_image.permute(0, 3, 1, 2).contiguous()
     gen_label = discriminator(gen_image)
 
     # optimize
@@ -141,8 +141,7 @@ for global_step in trange(start, iterations + 1):
         param_group['lr'] = new_d_lr
 
     if global_step % i_print == 0:
-        pass
-        # tqdm.write(f"[Train] Iter: {global_step} Loss: {loss.item()} PSNR: {psnr.item()}")
+        tqdm.write(f"[Train] Iter: {global_step}({epoch_idx}-{batch_idx}) d_loss: {d_loss.item()} g_loss: {g_loss.item()}")
 
     if global_step % i_save == 0:
         path = os.path.join(output_path, experiment_name, '{:06d}.tar'.format(global_step))
@@ -156,14 +155,7 @@ for global_step in trange(start, iterations + 1):
         }, path)
         tqdm.write(f'Saved checkpoints at {path}')
 
-    # if global_step % i_image == 0:
-    #     # Turn on testing mode
-    #     with torch.no_grad():
-    #         image, _, _ = render_image(width, height, focal, camera_pos_to_transform_matrix(4, 0, 0),
-    #                                    render_near, render_far,
-    #                                    coarse_model, fine_model,
-    #                                    render_coarse_sample_num, render_fine_sample_num
-    #                                    )
-    #     rgb8 = to8b(image)
-    #     filename = os.path.join(log_path, '{:06d}.png'.format(global_step))
-    #     imageio.imwrite(filename, rgb8)
+    if global_step % i_image == 0:
+        # Turn on testing mode
+        filename = os.path.join(log_path, '{:06d}.png'.format(global_step))
+        save_demo(generator, renderer, filename)
