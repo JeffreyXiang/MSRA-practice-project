@@ -123,7 +123,7 @@ class Generator(torch.nn.Module):
 
 """=============== RENDERER ==============="""
 
-class Renderer:
+class RendererFunc:
     def __init__(self, width=None, height=None, near=0.1, far=1.9, fov=12, coarse_samples=64, fine_samples=128,
                  horizontal_std=0.3, vertical_std=0.15):
         self.width = width
@@ -159,6 +159,26 @@ class Renderer:
         img = render_image(self.width, self.height, self.focal, pose, self.near, self.far, model, model,
                            self.coarse_samples, self.fine_samples)
         return img
+
+
+class Renderer(torch.nn.Module):
+    def __init__(self, width=None, height=None, near=0.1, far=1.9, fov=12, coarse_samples=64, fine_samples=128,
+                 horizontal_std=0.3, vertical_std=0.15):
+        super(Renderer, self).__init__()
+        self.render_func = RendererFunc(width, height, near, far, fov, coarse_samples, fine_samples,
+                 horizontal_std, vertical_std)
+
+    def render(self, model, theta=None, phi=None):
+        return self.render_func(model, theta, phi)
+
+    def forward(self, nerf, film_params):
+        gen_image = []
+        for i in range(film_params.shape[0]):
+            nerf.set_film_params(film_params[i])
+            gen_image.append(self.render_func(nerf))
+        gen_image = torch.stack(gen_image)
+        gen_image = gen_image.permute(0, 3, 1, 2).contiguous()
+        return gen_image
 
 """=============== DISCRIMINATOR ==============="""
 

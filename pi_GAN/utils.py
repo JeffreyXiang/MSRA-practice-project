@@ -5,7 +5,12 @@ import imageio
 to8b = lambda x: (255*np.clip(x, 0, 1)).astype(np.uint8)
 
 def summary_module(module):
-    print(list(module.named_modules()))
+    # print(list(module.named_modules()))
+    total_params = sum(p.numel() for p in module.parameters())
+    print(f'{total_params:,} total parameters.')
+    total_trainable_params = sum(
+        p.numel() for p in module.parameters() if p.requires_grad)
+    print(f'{total_trainable_params:,} training parameters.')
 
 def requires_grad(model, flag=True):
     for p in model.parameters():
@@ -28,7 +33,7 @@ def save_demo(generator, renderer, file_name):
     gen_image = []
     for i in range(film_params.shape[0]):
         nerf.set_film_params(film_params[i])
-        gen_image.append(renderer(nerf).cpu().numpy())
+        gen_image.append(renderer.render(nerf).cpu().numpy())
     gen_image_row = [
         np.concatenate(gen_image[0:4], axis=1),
         np.concatenate(gen_image[4:8], axis=1),

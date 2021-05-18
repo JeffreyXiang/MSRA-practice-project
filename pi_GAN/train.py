@@ -52,8 +52,9 @@ renderer = Renderer(resolution, resolution, render_near, render_far, 12, render_
 discriminator = Discriminator(resolution)
 g_optimizer = torch.optim.Adam(params=generator.parameters(), lr=generator_lr, betas=(0, 0.9))
 d_optimizer = torch.optim.Adam(params=discriminator.parameters(), lr=discriminator_lr, betas=(0, 0.9))
-# summary_module(generator)
-# summary_module(discriminator)
+summary_module(generator)
+summary_module(renderer)
+summary_module(discriminator)
 # renderer.show_distribution()
 
 # Load log directory
@@ -91,12 +92,7 @@ for global_step in trange(start, iterations + 1):
     # generate
     z = torch.randn(batch_size, z_dim, device='cuda')
     nerf, film_params = generator(z)
-    gen_image = []
-    for i in range(film_params.shape[0]):
-        nerf.set_film_params(film_params[i])
-        gen_image.append(renderer(nerf))
-    gen_image = torch.stack(gen_image)
-    gen_image = gen_image.permute(0, 3, 1, 2).contiguous()
+    gen_image = renderer(nerf, film_params)
     gen_label = discriminator(gen_image)
 
     # optimize
@@ -114,12 +110,7 @@ for global_step in trange(start, iterations + 1):
     # generate
     z = torch.randn(batch_size, z_dim, device='cuda')
     nerf, film_params = generator(z)
-    gen_image = []
-    for i in range(film_params.shape[0]):
-        nerf.set_film_params(film_params[i])
-        gen_image.append(renderer(nerf))
-    gen_image = torch.stack(gen_image)
-    gen_image = gen_image.permute(0, 3, 1, 2).contiguous()
+    gen_image = renderer(nerf, film_params)
     gen_label = discriminator(gen_image)
 
     # optimize
