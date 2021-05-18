@@ -27,13 +27,13 @@ def loss_r1(y, x):
     return res
 
 @torch.no_grad()
-def save_demo(generator, renderer, file_name):
+def save_demo(generator, file_name):
     z = torch.randn(16, generator.input_dim, device='cuda')
-    nerf, film_params = generator(z)
+    film_params = generator.get_mapping(z)
     gen_image = []
     for i in range(film_params.shape[0]):
-        nerf.set_film_params(film_params[i])
-        gen_image.append(renderer.render(nerf).cpu().numpy())
+        generator.set_film_params(film_params[i])
+        gen_image.append(generator.render().cpu().numpy())
     gen_image_row = [
         np.concatenate(gen_image[0:4], axis=1),
         np.concatenate(gen_image[4:8], axis=1),

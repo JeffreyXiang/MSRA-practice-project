@@ -38,7 +38,9 @@ i_save = config['i_save'] if 'i_save' in config else 10000
 i_image = config['i_image'] if 'i_image' in config else 1000
 
 z_dim = 1024
-resolution = 32
+resolution = 8
+batch_size = 8
+i_image = 10
 
 """=============== START ==============="""
 # Load Dataset
@@ -47,16 +49,13 @@ os.makedirs(log_path, exist_ok=True)
 dataset = DataLoader(data_path, batch_size, resize=resolution/64, preload=False)
 
 # Model
-generator = Generator(z_dim)
+generator = Generator(z_dim, resolution, render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
 generator = torch.nn.DataParallel(generator)
-renderer = Renderer(resolution, resolution, render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
-renderer = torch.nn.DataParallel(renderer)
 discriminator = Discriminator(resolution)
 discriminator = torch.nn.DataParallel(discriminator)
 g_optimizer = torch.optim.Adam(params=generator.parameters(), lr=generator_lr, betas=(0, 0.9))
 d_optimizer = torch.optim.Adam(params=discriminator.parameters(), lr=discriminator_lr, betas=(0, 0.9))
 summary_module(generator)
-summary_module(renderer)
 summary_module(discriminator)
 # renderer.show_distribution()
 
@@ -71,8 +70,8 @@ if len(check_points) > 0:
     loss_log = check_point['loss_log']
     g_optimizer.load_state_dict(check_point['g_optimizer'])
     d_optimizer.load_state_dict(check_point['d_optimizer'])
-    generator.load_state_dict(check_point['generator'])
-    discriminator.load_state_dict(check_point['discriminator'])
+    generator.module.load_state_dict(check_point['generator'])
+    discriminator.module.load_state_dict(check_point['discriminator'])
 else:
     global_step = 0
     loss_log = {'g_loss': [], 'd_loss': []}
@@ -94,8 +93,7 @@ for global_step in trange(start, iterations + 1):
 
     # generate
     z = torch.randn(batch_size, z_dim, device='cuda')
-    film_params = generator(z)
-    gen_image = renderer(generator.film_siren_nerf, film_params)
+    gen_image = generator(z)
     gen_label = discriminator(gen_image)
 
     # optimize
@@ -112,8 +110,7 @@ for global_step in trange(start, iterations + 1):
 
     # generate
     z = torch.randn(batch_size, z_dim, device='cuda')
-    film_params = generator(z)
-    gen_image = renderer(generator.film_siren_nerf, film_params)
+    gen_image = generator(z)
     gen_label = discriminator(gen_image)
 
     # optimize
@@ -142,8 +139,8 @@ for global_step in trange(start, iterations + 1):
         torch.save({
             'global_step': global_step,
             'loss_log': loss_log,
-            'generator': generator.state_dict(),
-            'discriminator': discriminator.state_dict(),
+            'generator': generator.module.state_dict(),
+            'discriminator': discriminator.module.state_dict(),
             'g_optimizer': g_optimizer.state_dict(),
             'd_optimizer': d_optimizer.state_dict(),
         }, path)
@@ -152,4 +149,4 @@ for global_step in trange(start, iterations + 1):
     if global_step % i_image == 0:
         # Turn on testing mode
         filename = os.path.join(log_path, '{:06d}.png'.format(global_step))
-        save_demo(generator, renderer, filename)
+        save_demo(generator.module, filename)

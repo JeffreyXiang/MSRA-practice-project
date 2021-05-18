@@ -108,23 +108,8 @@ class FilmSirenNeRF(torch.nn.Module):
         return outputs
 
 
-class Generator(torch.nn.Module):
-    """pi-GAN Generator"""
-
-    def __init__(self, input_dim=256):
-        super(Generator, self).__init__()
-        self.input_dim = input_dim
-        self.film_siren_nerf = FilmSirenNeRF()
-        self.mapping_network = MappingNetwork(input_dim=input_dim)
-
-    def forward(self, input_tensor):
-        film_params = self.mapping_network(input_tensor)
-        return film_params
-
-"""=============== RENDERER ==============="""
-
-class RendererFunc:
-    def __init__(self, width=None, height=None, near=0.1, far=1.9, fov=12, coarse_samples=64, fine_samples=128,
+class Renderer:
+    def __init__(self, width, height, near=0.1, far=1.9, fov=12, coarse_samples=64, fine_samples=128,
                  horizontal_std=0.3, vertical_std=0.15):
         self.width = width
         self.height = height
@@ -136,13 +121,16 @@ class RendererFunc:
         self.horizontal_std = horizontal_std
         self.vertical_std = vertical_std
 
-    def set_params(self, width=None, height=None, near=None, far=None, coarse_samples=None, fine_samples=None):
+    def set_params(self, width=None, height=None, near=None, far=None, coarse_samples=None, fine_samples=None,
+                   horizontal_std=None, vertical_std=None):
         self.width = width if width is not None else self.width
         self.height = height if height is not None else self.height
         self.near = near if near is not None else self.near
         self.far = far if far is not None else self.far
         self.coarse_samples = coarse_samples if coarse_samples is not None else self.coarse_samples
         self.fine_samples = fine_samples if fine_samples is not None else self.fine_samples
+        self.horizontal_std = horizontal_std if horizontal_std is not None else self.horizontal_std
+        self.vertical_std = vertical_std if vertical_std is not None else self.vertical_std
 
     def show_distribution(self):
         theta = np.random.randn(1000) * self.horizontal_std
@@ -161,24 +149,37 @@ class RendererFunc:
         return img
 
 
-class Renderer(torch.nn.Module):
-    def __init__(self, width=None, height=None, near=0.1, far=1.9, fov=12, coarse_samples=64, fine_samples=128,
+class Generator(torch.nn.Module):
+    """pi-GAN Generator"""
+
+    def __init__(self, input_dim, output_size, near=0.1, far=1.9, fov=12, coarse_samples=64, fine_samples=128,
                  horizontal_std=0.3, vertical_std=0.15):
-        super(Renderer, self).__init__()
-        self.render_func = RendererFunc(width, height, near, far, fov, coarse_samples, fine_samples,
-                 horizontal_std, vertical_std)
+        super(Generator, self).__init__()
+        self.input_dim = input_dim
+        self.film_siren_nerf = FilmSirenNeRF()
+        self.mapping_network = MappingNetwork(input_dim=input_dim)
+        self.renderer = Renderer(output_size, output_size, near, far, fov, coarse_samples, fine_samples, horizontal_std, vertical_std)
 
-    def render(self, model, theta=None, phi=None):
-        return self.render_func(model, theta, phi)
-
-    def forward(self, nerf, film_params):
+    def forward(self, input_tensor):
+        film_params = self.mapping_network(input_tensor)
         gen_image = []
         for i in range(film_params.shape[0]):
-            nerf.set_film_params(film_params[i])
-            gen_image.append(self.render_func(nerf))
+            self.film_siren_nerf.set_film_params(film_params[i])
+            gen_image.append(self.renderer(self.film_siren_nerf))
         gen_image = torch.stack(gen_image)
         gen_image = gen_image.permute(0, 3, 1, 2).contiguous()
         return gen_image
+
+    def get_mapping(self, input_tensor):
+        film_params = self.mapping_network(input_tensor)
+        return film_params
+
+    def set_film_params(self, film_params):
+        self.film_siren_nerf.set_film_params(film_params)
+
+    def render(self, theta=None, phi=None):
+        return self.renderer(self.film_siren_nerf, theta, phi)
+
 
 """=============== DISCRIMINATOR ==============="""
 
