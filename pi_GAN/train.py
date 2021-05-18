@@ -37,16 +37,19 @@ i_print = config['i_print'] if 'i_print' in config else 100
 i_save = config['i_save'] if 'i_save' in config else 10000
 i_image = config['i_image'] if 'i_image' in config else 1000
 
+z_dim = 1024
+resolution = 32
+
 """=============== START ==============="""
 # Load Dataset
 log_path = os.path.join(output_path, experiment_name)
 os.makedirs(log_path, exist_ok=True)
-dataset = DataLoader(data_path, batch_size, resize=32/64, preload=False)
+dataset = DataLoader(data_path, batch_size, resize=resolution/64, preload=False)
 
 # Model
-generator = Generator(1024)
-renderer = Renderer(32, 32, render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
-discriminator = Discriminator(32)
+generator = Generator(z_dim)
+renderer = Renderer(resolution, resolution, render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
+discriminator = Discriminator(resolution)
 g_optimizer = torch.optim.Adam(params=generator.parameters(), lr=generator_lr, betas=(0, 0.9))
 d_optimizer = torch.optim.Adam(params=discriminator.parameters(), lr=discriminator_lr, betas=(0, 0.9))
 # summary_module(generator)
@@ -86,7 +89,7 @@ for global_step in trange(start, iterations + 1):
     real_label = discriminator(real_image)
 
     # generate
-    z = torch.randn(batch_size, 1024, device='cuda')
+    z = torch.randn(batch_size, z_dim, device='cuda')
     nerf, film_params = generator(z)
     gen_image = []
     for i in range(film_params.shape[0]):
@@ -109,7 +112,7 @@ for global_step in trange(start, iterations + 1):
     requires_grad(discriminator, False)
 
     # generate
-    z = torch.randn(batch_size, 1024, device='cuda')
+    z = torch.randn(batch_size, z_dim, device='cuda')
     nerf, film_params = generator(z)
     gen_image = []
     for i in range(film_params.shape[0]):
