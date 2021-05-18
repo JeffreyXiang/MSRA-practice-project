@@ -119,7 +119,7 @@ class Generator(torch.nn.Module):
 
     def forward(self, input_tensor):
         film_params = self.mapping_network(input_tensor)
-        return self.film_siren_nerf, film_params
+        return film_params
 
 """=============== RENDERER ==============="""
 

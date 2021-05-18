@@ -94,8 +94,8 @@ for global_step in trange(start, iterations + 1):
 
     # generate
     z = torch.randn(batch_size, z_dim, device='cuda')
-    nerf, film_params = generator(z)
-    gen_image = renderer(nerf, film_params)
+    film_params = generator(z)
+    gen_image = renderer(generator.film_siren_nerf, film_params)
     gen_label = discriminator(gen_image)
 
     # optimize
@@ -112,8 +112,8 @@ for global_step in trange(start, iterations + 1):
 
     # generate
     z = torch.randn(batch_size, z_dim, device='cuda')
-    nerf, film_params = generator(z)
-    gen_image = renderer(nerf, film_params)
+    film_params = generator(z)
+    gen_image = renderer(generator.film_siren_nerf, film_params)
     gen_label = discriminator(gen_image)
 
     # optimize
