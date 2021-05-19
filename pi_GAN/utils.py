@@ -27,19 +27,17 @@ def loss_r1(y, x):
     return res
 
 @torch.no_grad()
-def save_demo(generator, file_name):
-    z = torch.randn(16, generator.input_dim, device='cuda')
-    film_params = generator.get_mapping(z)
+def save_demo(generator, file_name, rows=4, columns=4, chunk_size=16):
+    num = rows * columns
+    z = torch.randn(num, generator.input_dim, device='cuda')
     gen_image = []
-    for i in range(film_params.shape[0]):
-        generator.set_film_params(film_params[i])
-        gen_image.append(generator.render().cpu().numpy())
-    gen_image_row = [
-        np.concatenate(gen_image[0:4], axis=1),
-        np.concatenate(gen_image[4:8], axis=1),
-        np.concatenate(gen_image[8:12], axis=1),
-        np.concatenate(gen_image[12:16], axis=1)
-    ]
+    for i in range(0, num, chunk_size):
+        batch_z = z[i:i + chunk_size]
+        out = generator(batch_z)
+        gen_image.extend(list(out.cpu().numpy()))
+    gen_image_row = []
+    for i in range(0, num, columns):
+        gen_image_row.append(np.concatenate(gen_image[i:i + columns], axis=1))
     demo_image = np.concatenate(gen_image_row, axis=0)
     rgb = to8b(demo_image)
     imageio.imsave(file_name, rgb)
