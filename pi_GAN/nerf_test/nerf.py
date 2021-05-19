@@ -96,7 +96,7 @@ class NeRF(torch.nn.Module):
 
 class Siren(torch.nn.Linear):
     """Siren layer: Linear layer and sine activation"""
-    def __init__(self, input_dim: int, output_dim: int) -> None:
+    def __init__(self, input_dim: int, output_dim: int, w_0=30) -> None:
         """
         Initialize a Dense layer
 
@@ -106,32 +106,33 @@ class Siren(torch.nn.Linear):
         """
         self.input_dim = input_dim
         self.output_dim = output_dim
+        self.w_0 = w_0
         super(Siren, self).__init__(input_dim, output_dim)
 
     def forward(self, input_tensor):
-        return torch.sin(30 * super(Siren, self).forward(input_tensor))
+        return torch.sin(self.w_0 * super(Siren, self).forward(input_tensor))
 
     def reset_parameters(self) -> None:
-        torch.nn.init.uniform_(self.weight, -np.sqrt(6 / self.input_dim) / 30, np.sqrt(6 / self.input_dim) / 30)
+        torch.nn.init.uniform_(self.weight, -np.sqrt(6 / self.input_dim) / self.w_0, np.sqrt(6 / self.input_dim) / self.w_0)
         if self.bias is not None:
             torch.nn.init.zeros_(self.bias)
 
 
 class SirenNeRF(torch.nn.Module):
     """Neural Radiance Field model"""
-    def __init__(self):
+    def __init__(self, w_0=30):
         super(SirenNeRF, self).__init__()
         self.layers_pos = torch.nn.ModuleList([
-            Siren(3, 256),
-            Siren(256, 256),
-            Siren(256, 256),
-            Siren(256, 256),
-            Siren(256, 256),
-            Siren(256 + 3, 256),
-            Siren(256, 256),
-            Siren(256, 256)
+            Siren(3, 256, w_0=w_0),
+            Siren(256, 256, w_0=w_0),
+            Siren(256, 256, w_0=w_0),
+            Siren(256, 256, w_0=w_0),
+            Siren(256, 256, w_0=w_0),
+            Siren(256 + 3, 256, w_0=w_0),
+            Siren(256, 256, w_0=w_0),
+            Siren(256, 256, w_0=w_0)
         ])
-        torch.nn.init.uniform_(self.layers_pos[0].weight, -1 / 30, 1 / 30)
+        torch.nn.init.uniform_(self.layers_pos[0].weight, -1 / 3, 1 / 3)
 #         torch.nn.init.uniform_(self.layers_pos[1].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
 #         torch.nn.init.uniform_(self.layers_pos[2].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
 #         torch.nn.init.uniform_(self.layers_pos[3].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
@@ -141,7 +142,7 @@ class SirenNeRF(torch.nn.Module):
 #         torch.nn.init.uniform_(self.layers_pos[7].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
         self.layers_dir = torch.nn.ModuleList([
             Dense(256, 256, activation='linear'),
-            Siren(256 + 3, 128),
+            Siren(256 + 3, 128, w_0=w_0),
         ])
 #         torch.nn.init.uniform_(self.layers_dir[0].weight, -np.sqrt(6 / 256) / 30, np.sqrt(6 / 256) / 30)
 #         torch.nn.init.uniform_(self.layers_dir[1].weight, -np.sqrt(6 / 259) / 30, np.sqrt(6 / 259) / 30)

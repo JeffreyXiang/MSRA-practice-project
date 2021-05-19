@@ -7,6 +7,7 @@ from tqdm import tqdm, trange
 import imageio
 from nerf_test.data_loader import *
 from nerf_test.render import *
+from nerf_test.nerf import SirenNeRF
 from modules import FilmSirenNeRF
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -87,11 +88,15 @@ batch_num = int(np.ceil(rays_rgba.shape[0] / batch_size))
 print(f'Batching Finished: size={rays_rgba.shape}, batch_size={batch_size}, batch_num={batch_num}')
 
 # Model
-coarse_model = FilmSirenNeRF()
-fine_model = FilmSirenNeRF() if use_fine_model else coarse_model
-film_params = torch.cat([torch.ones(9, 256), torch.zeros(9, 256)], dim=1)
-coarse_model.set_film_params(film_params)
-fine_model.set_film_params(film_params)
+if False:
+    coarse_model = FilmSirenNeRF()
+    fine_model = FilmSirenNeRF() if use_fine_model else coarse_model
+    film_params = torch.cat([torch.ones(9, 256), torch.zeros(9, 256)], dim=1)
+    coarse_model.set_film_params(film_params)
+    fine_model.set_film_params(film_params)
+else:
+    coarse_model = SirenNeRF()
+    fine_model = SirenNeRF() if use_fine_model else coarse_model
 trainable_variables = list(coarse_model.parameters())
 if use_fine_model:
     trainable_variables += list(fine_model.parameters())
