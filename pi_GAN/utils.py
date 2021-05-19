@@ -30,11 +30,16 @@ def loss_r1(y, x):
 def save_demo(generator, file_name, rows=4, columns=4, chunk_size=16):
     num = rows * columns
     z = torch.randn(num, generator.input_dim, device='cuda')
-    gen_image = []
+    film_params = []
     for i in range(0, num, chunk_size):
         batch_z = z[i:i + chunk_size]
-        out = generator(batch_z)
-        gen_image.extend(list(out.cpu().numpy()))
+        w = generator.get_mapping(batch_z)
+        film_params.append(w)
+    film_params = torch.cat(film_params, dim=0)
+    gen_image = []
+    for i in range(film_params.shape[0]):
+        generator.set_film_params(film_params[i])
+        gen_image.append(generator.render().cpu().numpy())
     gen_image_row = []
     for i in range(0, num, columns):
         gen_image_row.append(np.concatenate(gen_image[i:i + columns], axis=1))

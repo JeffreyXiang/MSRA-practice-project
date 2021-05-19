@@ -50,4 +50,4 @@ if len(check_points) > 0:
     discriminator.load_state_dict(check_point['discriminator'])
 
 
-save_demo(generator, './demo.png')
+save_demo(generator, './demo.png', 8, 8)
