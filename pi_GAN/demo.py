@@ -49,16 +49,5 @@ if len(check_points) > 0:
     generator.load_state_dict(check_point['generator'])
     discriminator.load_state_dict(check_point['discriminator'])
 
-print('Real Image:')
-for i in range(8):
-    _, _, real_image = dataset.get()
-    real_image = real_image.permute(0, 3, 1, 2).contiguous()
-    real_label = discriminator(real_image)
-    print(real_label)
 
-print('Generated Image:')
-for i in range(8):
-    z = torch.randn(1, z_dim)
-    gen_image = generator(z)
-    gen_label = discriminator(gen_image)
-    print(gen_label)
+save_demo(generator, './demo.png')

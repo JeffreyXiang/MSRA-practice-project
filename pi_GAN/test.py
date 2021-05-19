@@ -62,5 +62,3 @@ for i in range(8):
     gen_image = generator(z)
     gen_label = discriminator(gen_image)
     print(gen_label)
-
-save_demo(generator, './demo.png')
