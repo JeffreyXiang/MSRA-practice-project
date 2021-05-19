@@ -88,7 +88,7 @@ batch_num = int(np.ceil(rays_rgba.shape[0] / batch_size))
 print(f'Batching Finished: size={rays_rgba.shape}, batch_size={batch_size}, batch_num={batch_num}')
 
 # Model
-if False:
+if True:
     coarse_model = FilmSirenNeRF()
     fine_model = FilmSirenNeRF() if use_fine_model else coarse_model
     film_params = torch.cat([torch.ones(9, 256), torch.zeros(9, 256)], dim=1)

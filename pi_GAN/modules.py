@@ -17,6 +17,7 @@ class FilmSiren(torch.nn.Module):
         self.is_first_layer = is_first_layer
         self.weight = torch.nn.Parameter(torch.zeros(output_dim, input_dim))
         self.bias = torch.nn.Parameter(torch.zeros(output_dim))
+        self.reset_parameters()
 
     def forward(self, input_tensor, gamma, beta):
         x = torch.nn.functional.linear(input_tensor, self.weight, self.bias)
