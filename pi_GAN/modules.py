@@ -65,19 +65,19 @@ class MappingNetwork(torch.nn.Module):
 class FilmSirenNeRF(torch.nn.Module):
     """Major part of the generator"""
 
-    def __init__(self, hidden_dim=256, hidden_layers=8):
+    def __init__(self, hidden_dim=256, hidden_layers=8, c=6, w_0=30):
         super(FilmSirenNeRF, self).__init__()
         self.film_params = None
-        self.input_layer = FilmSiren(3, hidden_dim, is_first_layer=True)
+        self.input_layer = FilmSiren(3, hidden_dim, c=c, w_0=w_0, is_first_layer=True)
         self.hidden_layers = []
         for i in range(hidden_layers - 1):
-            self.hidden_layers.append(FilmSiren(hidden_dim, hidden_dim))
+            self.hidden_layers.append(FilmSiren(hidden_dim, hidden_dim, c=c, w_0=w_0))
         self.hidden_layers = torch.nn.ModuleList(self.hidden_layers)
         self.output_layer_sigma = torch.nn.Sequential(
             torch.nn.Linear(hidden_dim, 1),
             torch.nn.ReLU()
         )
-        self.hidden_layer_rgb = FilmSiren(hidden_dim + 3, hidden_dim)
+        self.hidden_layer_rgb = FilmSiren(hidden_dim + 3, hidden_dim, c=c, w_0=w_0)
         self.output_layer_rgb = torch.nn.Sequential(
             torch.nn.Linear(hidden_dim, 3),
             torch.nn.Sigmoid()

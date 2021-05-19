@@ -1,7 +1,7 @@
 import torch
 import os
-os.chdir('../')
 import sys
+sys.path.append("..")
 import json
 from tqdm import tqdm, trange
 import imageio
