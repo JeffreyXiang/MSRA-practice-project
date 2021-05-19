@@ -38,9 +38,7 @@ i_save = config['i_save'] if 'i_save' in config else 10000
 i_image = config['i_image'] if 'i_image' in config else 1000
 
 z_dim = 1024
-resolution = 8
-batch_size = 8
-i_image = 10
+resolution = 32
 
 """=============== START ==============="""
 # Load Dataset
