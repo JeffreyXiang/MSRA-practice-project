@@ -26,28 +26,22 @@ render_coarse_sample_num = config['render_coarse_sample_num'] if 'render_coarse_
 render_fine_sample_num = config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 24
 
 z_dim = 1024
-resolution = 32
+resolution = 128
+render_coarse_sample_num = 32
+render_coarse_sample_num = 64
 
 """=============== START ==============="""
-# Load Dataset
-log_path = os.path.join(output_path, experiment_name)
-os.makedirs(log_path, exist_ok=True)
-dataset = DataLoader(data_path, 1, resize=resolution/64, preload=False)
-
 # Model
 generator = Generator(z_dim, resolution, render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
-discriminator = Discriminator(resolution)
 
 # Load log directory
+log_path = os.path.join(output_path, experiment_name)
 check_points = [os.path.join(log_path, f) for f in sorted(os.listdir(log_path)) if 'tar' in f]
 print('Found check_points', check_points)
 if len(check_points) > 0:
     check_point_path = check_points[-1]
     print('Reloading from', check_point_path)
     check_point = torch.load(check_point_path)
-    loss_log = check_point['loss_log']
     generator.load_state_dict(check_point['generator'])
-    discriminator.load_state_dict(check_point['discriminator'])
-
 
 save_demo(generator, './demo.png', 8, 8)

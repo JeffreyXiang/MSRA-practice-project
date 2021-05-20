@@ -62,3 +62,12 @@ for i in range(8):
     gen_image = generator(z)
     gen_label = discriminator(gen_image)
     print(gen_label)
+
+plt.plot(loss_log['g_loss'], label='g_loss')
+plt.plot(loss_log['d_loss'], label='d_loss')
+plt.legend()
+plt.title('Loss-Iterations Diagram')
+plt.xlabel('Iterations')
+plt.ylabel('Loss')
+plt.savefig('figure.png', dpi=600)
+plt.show()

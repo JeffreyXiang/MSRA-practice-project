@@ -52,6 +52,9 @@ class MappingNetwork(torch.nn.Module):
         for i in range(output_layers):
             self.output_layers.append(torch.nn.Linear(hidden_dim, 2 * output_dim))
         self.output_layers.append(torch.nn.Linear(hidden_dim, 2 * output_dim))
+        for layer in self.output_layers:
+            layer.bias.data[:output_dim] = 1
+            layer.bias.data[output_dim:] = 0
         self.output_layers = torch.nn.ModuleList(self.output_layers)
 
     def forward(self, input_tensor):
@@ -177,6 +180,10 @@ class Generator(torch.nn.Module):
 
     def set_film_params(self, film_params):
         self.film_siren_nerf.set_film_params(film_params)
+
+    def set_resolution(self, resolution):
+        self.renderer.width = resolution
+        self.renderer.height = resolution
 
     def render(self, theta=None, phi=None):
         return self.renderer(self.film_siren_nerf, theta, phi)

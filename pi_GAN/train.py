@@ -25,8 +25,11 @@ render_far = config['render_far'] if 'render_far' in config else 1.5
 render_coarse_sample_num = config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 12
 render_fine_sample_num = config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 24
 
-iterations = config['iterations'] if 'iterations' in config else 200000
-batch_size = config['batch_size'] if 'batch_size' in config else 128
+z_dim = config['z_dim'] if 'z_dim' in config else 1024
+iterations = config['iterations'] if 'iterations' in config else [50000]
+fade_in_itrs = config['fade_in_itrs'] if 'fade_in_itrs' in config else [0]
+batch_size = config['batch_size'] if 'batch_size' in config else [64]
+resolution = config['resolution'] if 'resolution' in config else [32]
 generator_lr = config['generator_lr'] if 'generator_lr' in config else 5e-5
 discriminator_lr = config['discriminator_lr'] if 'discriminator_lr' in config else 4e-4
 generator_lr_end = config['generator_lr_end'] if 'generator_lr_end' in config else 1e-5
@@ -37,19 +40,14 @@ i_print = config['i_print'] if 'i_print' in config else 100
 i_save = config['i_save'] if 'i_save' in config else 10000
 i_image = config['i_image'] if 'i_image' in config else 1000
 
-z_dim = 1024
-resolution = 32
+iterations = [0] + iterations
+
 
 """=============== START ==============="""
-# Load Dataset
-log_path = os.path.join(output_path, experiment_name)
-os.makedirs(log_path, exist_ok=True)
-dataset = DataLoader(data_path, batch_size, resize=resolution/64, preload=False)
-
 # Model
-generator = Generator(z_dim, resolution, render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
+generator = Generator(z_dim, resolution[0], render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
 generator = torch.nn.DataParallel(generator)
-discriminator = Discriminator(resolution)
+discriminator = Discriminator(resolution[0])
 discriminator = torch.nn.DataParallel(discriminator)
 g_optimizer = torch.optim.Adam(params=generator.parameters(), lr=generator_lr, betas=(0, 0.9))
 d_optimizer = torch.optim.Adam(params=discriminator.parameters(), lr=discriminator_lr, betas=(0, 0.9))
@@ -58,6 +56,8 @@ summary_module(discriminator)
 # renderer.show_distribution()
 
 # Load log directory
+log_path = os.path.join(output_path, experiment_name)
+os.makedirs(log_path, exist_ok=True)
 check_points = [os.path.join(log_path, f) for f in sorted(os.listdir(log_path)) if 'tar' in f]
 print('Found check_points', check_points)
 if len(check_points) > 0:
@@ -73,12 +73,28 @@ if len(check_points) > 0:
 else:
     global_step = 0
     loss_log = {'g_loss': [], 'd_loss': []}
+global_step += 1
+
+stage = 0
+for i in range(len(iterations)):
+    if global_step > iterations[i]:
+        stage = i
+    else:
+        break
+dataset = DataLoader(data_path, batch_size[stage], resize=resolution[stage]/64, preload=False)
+generator.module.set_resolution(resolution[stage])
+discriminator.module.set_resolution(resolution[stage])
+print(f'Starting at stage {stage}, batch_size:{batch_size[stage]}, resolution:{resolution[stage]}')
 
 # Training
-global_step += 1
 start = global_step
-for global_step in trange(start, iterations + 1):
+for global_step in trange(start, iterations[-1] + 1):
     epoch_idx, batch_idx, real_image = dataset.get()
+
+    # fade in
+    fade_in_alpha = -1
+    if global_step < iterations[stage] + fade_in_itrs[stage]:
+        fade_in_alpha = (global_step - iterations[stage]) / fade_in_itrs[stage]
 
     ## train D
     requires_grad(generator, False)
@@ -87,12 +103,12 @@ for global_step in trange(start, iterations + 1):
     # real
     real_image = real_image.permute(0, 3, 1, 2).contiguous()
     real_image.requires_grad = True
-    real_label = discriminator(real_image)
+    real_label = discriminator(real_image, alpha=fade_in_alpha)
 
     # generate
-    z = torch.randn(batch_size, z_dim, device='cuda')
+    z = torch.randn(batch_size[stage], z_dim, device='cuda')
     gen_image = generator(z)
-    gen_label = discriminator(gen_image)
+    gen_label = discriminator(gen_image, alpha=fade_in_alpha)
 
     # optimize
     d_optimizer.zero_grad()
@@ -107,9 +123,9 @@ for global_step in trange(start, iterations + 1):
     requires_grad(discriminator, False)
 
     # generate
-    z = torch.randn(batch_size, z_dim, device='cuda')
+    z = torch.randn(batch_size[stage], z_dim, device='cuda')
     gen_image = generator(z)
-    gen_label = discriminator(gen_image)
+    gen_label = discriminator(gen_image, alpha=fade_in_alpha)
 
     # optimize
     g_optimizer.zero_grad()
@@ -129,6 +145,16 @@ for global_step in trange(start, iterations + 1):
     for param_group in d_optimizer.param_groups:
         param_group['lr'] = new_d_lr
 
+    # Stage
+    if global_step == iterations[stage + 1]:
+        stage += 1
+        if stage + 1 < len(iterations):
+            dataset = DataLoader(data_path, batch_size[stage], resize=resolution[stage] / 64, preload=False)
+            generator.module.set_resolution(resolution[stage])
+            discriminator.module.set_resolution(resolution[stage])
+            tqdm.write(f'[Train] Entering stage {stage}, batch_size:{batch_size[stage]}, resolution:{resolution[stage]}')
+
+    # Logging
     if global_step % i_print == 0:
         tqdm.write(f"[Train] Iter: {global_step}({epoch_idx}-{batch_idx}) d_loss: {d_loss.item()} g_loss: {g_loss.item()}")
 
