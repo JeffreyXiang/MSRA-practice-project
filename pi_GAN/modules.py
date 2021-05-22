@@ -117,6 +117,7 @@ class Renderer:
                  horizontal_std=0.3, vertical_std=0.15):
         self.width = width
         self.height = height
+        self.fov = fov
         self.focal = width / 2 / np.tan(fov / 2 * np.pi / 180)
         self.near = near
         self.far = far
