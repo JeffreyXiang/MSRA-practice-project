@@ -7,8 +7,9 @@ from PIL import Image
 from tqdm import tqdm
 
 class DataLoader:
-    def __init__(self, data_path, batch_size, resize=1.0, preload=False, data_num=None):
+    def __init__(self, data_path, batch_size, resize=1.0, preload=False, keep_full=True, data_num=None):
         self.need_preload = preload
+        self.keep_full = keep_full
         self.resize = resize
         self.data_path = data_path
         self.data_files = [os.path.join(data_path, f) for f in sorted(os.listdir(data_path)) if 'png' in f]
@@ -64,7 +65,8 @@ class DataLoader:
             batch_data = np.stack(batch_data, axis=0).astype(np.float32) / 255
             batch_data = torch.tensor(batch_data, dtype=torch.float, device='cuda')
         self.batch += 1
-        if end == self.n_data_files:
+        if not self.keep_full and end == self.n_data_files or\
+                self.keep_full and end + self.batch_size > self.n_data_files:
             self.shuffle()
             self.epoch += 1
             self.batch = 0

@@ -125,12 +125,14 @@ class Renderer:
         self.horizontal_std = horizontal_std
         self.vertical_std = vertical_std
 
-    def set_params(self, width=None, height=None, near=None, far=None, coarse_samples=None, fine_samples=None,
+    def set_params(self, width=None, height=None, near=None, far=None, fov=None, coarse_samples=None, fine_samples=None,
                    horizontal_std=None, vertical_std=None):
         self.width = width if width is not None else self.width
         self.height = height if height is not None else self.height
         self.near = near if near is not None else self.near
         self.far = far if far is not None else self.far
+        self.fov = fov if fov is not None else self.fov
+        self.focal = width / 2 / np.tan(fov / 2 * np.pi / 180) if width is not None or fov is not None else self.focal
         self.coarse_samples = coarse_samples if coarse_samples is not None else self.coarse_samples
         self.fine_samples = fine_samples if fine_samples is not None else self.fine_samples
         self.horizontal_std = horizontal_std if horizontal_std is not None else self.horizontal_std
@@ -182,8 +184,7 @@ class Generator(torch.nn.Module):
         self.film_siren_nerf.set_film_params(film_params)
 
     def set_resolution(self, resolution):
-        self.renderer.width = resolution
-        self.renderer.height = resolution
+        self.renderer.set_params(width=resolution, height=resolution)
 
     def render(self, theta=None, phi=None):
         return self.renderer(self.film_siren_nerf, theta, phi)
