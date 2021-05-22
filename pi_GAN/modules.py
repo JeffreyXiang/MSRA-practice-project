@@ -52,6 +52,7 @@ class MappingNetwork(torch.nn.Module):
         for i in range(output_layers):
             self.output_layers.append(torch.nn.Linear(hidden_dim, 2 * output_dim))
         self.output_layers.append(torch.nn.Linear(hidden_dim, 2 * output_dim))
+        # IMPORTANT!!
         for layer in self.output_layers:
             layer.bias.data[:output_dim] = 1
             layer.bias.data[output_dim:] = 0
@@ -133,7 +134,7 @@ class Renderer:
         self.near = near if near is not None else self.near
         self.far = far if far is not None else self.far
         self.fov = fov if fov is not None else self.fov
-        self.focal = width / 2 / np.tan(fov / 2 * np.pi / 180) if width is not None or fov is not None else self.focal
+        self.focal = self.width / 2 / np.tan(self.fov / 2 * np.pi / 180) if (width is not None) or (fov is not None) else self.focal
         self.coarse_samples = coarse_samples if coarse_samples is not None else self.coarse_samples
         self.fine_samples = fine_samples if fine_samples is not None else self.fine_samples
         self.horizontal_std = horizontal_std if horizontal_std is not None else self.horizontal_std
