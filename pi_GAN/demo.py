@@ -58,5 +58,9 @@ elif demo_type == 2:
 elif demo_type == 3:
     n_pose = 5
     poses = [[0, 0, 6 + 6 * i] for i in range(n_pose)]
-    demo_multiview(generator, './demo_fov.png', poses, 4)
+    demo_multiview(generator, './demo_fov.png', poses, 8)
+elif demo_type == 4:
+    # Render
+    poses = [[angle, 0] for angle in np.linspace(-1, 1, 40 + 1)[:-1]]
+    demo_video(generator, './demo.gif', poses)
 

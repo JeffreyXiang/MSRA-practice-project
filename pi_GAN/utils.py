@@ -70,3 +70,15 @@ def demo_multiview(generator, file_name, poses, rows=4, chunk_size=16):
     rgb = to8b(demo_image)
     imageio.imsave(file_name, rgb)
 
+@torch.no_grad()
+def demo_video(generator, file_name, poses, chunk_size=16):
+    z = torch.randn(1, generator.input_dim, device='cuda')
+    film_params = generator.get_mapping(z)
+    gen_image = []
+    generator.set_film_params(film_params[0])
+    for pose in poses:
+        if len(pose) >= 3:
+            generator.renderer.set_params(fov=pose[2])
+        gen_image.append(generator.render(*pose[:2]).cpu().numpy())
+    video = np.stack(gen_image)
+    imageio.mimwrite(file_name, to8b(video), duration=0.1)
