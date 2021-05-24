@@ -13,6 +13,7 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 """=============== GLOBAL ARGUMENTS ==============="""
 config_filepath = sys.argv[1]
+demo_type = int(sys.argv[2])
 with open(config_filepath, 'r') as config_file:
     config = json.load(config_file)
 
@@ -44,4 +45,18 @@ if len(check_points) > 0:
     check_point = torch.load(check_point_path)
     generator.load_state_dict(check_point['generator'])
 
-save_demo(generator, './demo.png', 8, 8)
+if demo_type == 0:
+    save_demo(generator, './demo.png', 8, 8)
+elif demo_type == 1:
+    n_pose = 8
+    poses = [[0.2 * np.cos(2 * np.pi * i / n_pose), 0.2 * np.sin(2 * np.pi * i / n_pose)] for i in range(n_pose)]
+    demo_multiview(generator, './demo_multiview.png', poses, 8)
+elif demo_type == 2:
+    n_pose = 9
+    poses = [[0.2 * (i - (n_pose - 1) / 2), 0] for i in range(n_pose)]
+    demo_multiview(generator, './demo_extrapolate.png', poses, 8)
+elif demo_type == 3:
+    n_pose = 5
+    poses = [[0, 0, 6 + 6 * i] for i in range(n_pose)]
+    demo_multiview(generator, './demo_fov.png', poses, 4)
+

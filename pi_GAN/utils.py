@@ -47,3 +47,26 @@ def save_demo(generator, file_name, rows=4, columns=4, chunk_size=16):
     rgb = to8b(demo_image)
     imageio.imsave(file_name, rgb)
 
+
+@torch.no_grad()
+def demo_multiview(generator, file_name, poses, rows=4, chunk_size=16):
+    z = torch.randn(rows, generator.input_dim, device='cuda')
+    film_params = []
+    for i in range(0, rows, chunk_size):
+        batch_z = z[i:i + chunk_size]
+        w = generator.get_mapping(batch_z)
+        film_params.append(w)
+    film_params = torch.cat(film_params, dim=0)
+    gen_image_row = []
+    for i in range(film_params.shape[0]):
+        gen_image = []
+        generator.set_film_params(film_params[i])
+        for pose in poses:
+            if len(pose) >= 3:
+                generator.renderer.set_params(fov=pose[2])
+            gen_image.append(generator.render(*pose[:2]).cpu().numpy())
+        gen_image_row.append(np.concatenate(gen_image, axis=1))
+    demo_image = np.concatenate(gen_image_row, axis=0)
+    rgb = to8b(demo_image)
+    imageio.imsave(file_name, rgb)
+
