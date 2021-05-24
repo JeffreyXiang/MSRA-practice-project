@@ -25,6 +25,7 @@ render_far = config['render_far'] if 'render_far' in config else 1.5
 render_coarse_sample_num = config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 12
 render_fine_sample_num = config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 24
 
+use_dir = config['use_dir'] if 'use_dir' in config else True
 z_dim = config['z_dim'] if 'z_dim' in config else 1024
 iterations = config['iterations'] if 'iterations' in config else [50000]
 fade_in_itrs = config['fade_in_itrs'] if 'fade_in_itrs' in config else [0]
@@ -45,7 +46,7 @@ iterations = [0] + iterations
 
 """=============== START ==============="""
 # Model
-generator = Generator(z_dim, resolution[0], render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15)
+generator = Generator(z_dim, resolution[0], render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15, use_dir)
 generator = torch.nn.DataParallel(generator)
 discriminator = Discriminator(resolution[0])
 discriminator = torch.nn.DataParallel(discriminator)

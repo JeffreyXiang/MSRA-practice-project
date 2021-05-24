@@ -2,6 +2,7 @@
 **/__pycache__
 *.png
 *.mp4
+*.gif
 *.npy
 *.npz
 *.dae

@@ -20,12 +20,14 @@ output_path = config['output_path']
 experiment_name = config['experiment_name']
 data_path = config['data_path']
 
+use_dir = config['use_dir'] if 'use_dir' in config else True
+z_dim = config['z_dim'] if 'z_dim' in config else 1024
+
 render_near = config['render_near'] if 'render_near' in config else 0.5
 render_far = config['render_far'] if 'render_far' in config else 1.5
 render_coarse_sample_num = config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 12
 render_fine_sample_num = config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 24
 
-z_dim = 1024
 resolution = 32
 
 """=============== START ==============="""

@@ -1,14 +1,14 @@
 {
     "output_path": "./logs/",
-    "experiment_name": "test",
+    "experiment_name": "test_nodir",
     "data_path": "./data/image64_rescale",
     
-    "render_near": 0.5,
-    "render_far": 1.5,
+    "render_near": 0.8,
+    "render_far": 1.3,
     "render_coarse_sample_num": 8,
     "render_fine_sample_num": 16,
 
-    "use_dir": true,
+    "use_dir": false,
     "z_dim": 1024,
     "iterations": [50000, 100000],
     "fade_in_itrs": [0, 10000],

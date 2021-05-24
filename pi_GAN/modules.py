@@ -70,8 +70,9 @@ class MappingNetwork(torch.nn.Module):
 class FilmSirenNeRF(torch.nn.Module):
     """Major part of the generator"""
 
-    def __init__(self, hidden_dim=256, hidden_layers=8, c=6, w_0=30):
+    def __init__(self, hidden_dim=256, hidden_layers=8, c=6, w_0=30, use_dir=True):
         super(FilmSirenNeRF, self).__init__()
+        self.use_dir = use_dir
         self.film_params = None
         self.input_layer = FilmSiren(3, hidden_dim, c=c, w_0=w_0, is_first_layer=True)
         self.hidden_layers = []
@@ -82,7 +83,10 @@ class FilmSirenNeRF(torch.nn.Module):
             torch.nn.Linear(hidden_dim, 1),
             torch.nn.ReLU()
         )
-        self.hidden_layer_rgb = FilmSiren(hidden_dim + 3, hidden_dim, c=c, w_0=w_0)
+        if self.use_dir:
+            self.hidden_layer_rgb = FilmSiren(hidden_dim + 3, hidden_dim, c=c, w_0=w_0)
+        else:
+            self.hidden_layer_rgb = FilmSiren(hidden_dim, hidden_dim, c=c, w_0=w_0)
         self.output_layer_rgb = torch.nn.Sequential(
             torch.nn.Linear(hidden_dim, 3),
             torch.nn.Sigmoid()
@@ -106,7 +110,8 @@ class FilmSirenNeRF(torch.nn.Module):
         for i in range(self.n_layers):
             h = self.hidden_layers[i](h, *film_params[i + 1])
         sigma = self.output_layer_sigma(h)
-        h = torch.cat([h, input_dir], -1)
+        if self.use_dir:
+            h = torch.cat([h, input_dir], -1)
         h = self.hidden_layer_rgb(h, *film_params[self.n_layers + 1])
         rgb = self.output_layer_rgb(h)
         outputs = torch.cat([rgb, sigma], -1)
@@ -161,10 +166,10 @@ class Generator(torch.nn.Module):
     """pi-GAN Generator"""
 
     def __init__(self, input_dim, output_size, near=0.1, far=1.9, fov=12, coarse_samples=64, fine_samples=128,
-                 horizontal_std=0.3, vertical_std=0.15):
+                 horizontal_std=0.3, vertical_std=0.15, use_dir=True):
         super(Generator, self).__init__()
         self.input_dim = input_dim
-        self.film_siren_nerf = FilmSirenNeRF()
+        self.film_siren_nerf = FilmSirenNeRF(use_dir=use_dir)
         self.mapping_network = MappingNetwork(input_dim=input_dim)
         self.renderer = Renderer(output_size, output_size, near, far, fov, coarse_samples, fine_samples, horizontal_std, vertical_std)
 
