@@ -29,9 +29,9 @@ render_far = config['render_far'] if 'render_far' in config else 1.5
 render_coarse_sample_num = config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 12
 render_fine_sample_num = config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 24
 
-resolution = 32
-render_coarse_sample_num = 8
-render_coarse_sample_num = 16
+resolution = 128
+render_coarse_sample_num = 32
+render_coarse_sample_num = 64
 
 """=============== START ==============="""
 # Model
