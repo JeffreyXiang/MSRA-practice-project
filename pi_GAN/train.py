@@ -113,7 +113,7 @@ for global_step in trange(start, iterations[-1] + 1):
 
     # optimize
     d_optimizer.zero_grad()
-    lambda_ = 10
+    lambda_ = 1
     d_loss = -torch.mean(loss_f(gen_label)) - torch.mean(loss_f(-real_label)) + lambda_ * loss_r1(real_label, real_image)
     d_loss.backward()
     d_optimizer.step()

@@ -27,9 +27,9 @@ z_dim = config['z_dim'] if 'z_dim' in config else 1024
 render_near = config['render_near'] if 'render_near' in config else 0.5
 render_far = config['render_far'] if 'render_far' in config else 1.5
 
-resolution = 32
-render_coarse_sample_num = 8
-render_coarse_sample_num = 16
+resolution = 128
+render_coarse_sample_num = 32
+render_coarse_sample_num = 64
 
 """=============== START ==============="""
 # Model
