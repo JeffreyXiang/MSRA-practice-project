@@ -6,7 +6,8 @@ import logging
 import plyfile
 import skimage.measure
 
-to8b = lambda x: (255*np.clip(x, 0, 1)).astype(np.uint8)
+to8b = lambda x: (255 * np.clip(x, 0, 1)).astype(np.uint8)
+
 
 # TRAIN
 
@@ -18,12 +19,15 @@ def summary_module(module):
         p.numel() for p in module.parameters() if p.requires_grad)
     print(f'{total_trainable_params:,} training parameters.')
 
+
 def requires_grad(model, flag=True):
     for p in model.parameters():
         p.requires_grad = flag
 
+
 def loss_f(u):
     return -torch.nn.functional.softplus(-u)
+
 
 def loss_r1(y, x):
     batch_size = x.shape[0]
@@ -32,10 +36,11 @@ def loss_r1(y, x):
     res = torch.mean(gradients.norm(dim=-1) ** 2)
     return res
 
+
 # EXTRACT MESH
 
 def create_mesh(
-    generator, filename, N=256, max_batch=64 ** 3, offset=None, scale=None
+        generator, filename, N=256, max_batch=64 ** 3, offset=None, scale=None
 ):
     start = time.time()
     ply_filename = filename
@@ -74,14 +79,14 @@ def create_mesh(
 
     while head < num_samples:
         print(head)
-        sample_subset = samples[head : min(head + max_batch, num_samples), 0:3].cuda()
+        sample_subset = samples[head: min(head + max_batch, num_samples), 0:3].cuda()
         sample_subset = torch.cat([sample_subset, torch.zeros_like(sample_subset)], dim=-1)
 
-        samples[head : min(head + max_batch, num_samples), 3] = (
-            decoder(sample_subset)[:, 3]
-            .squeeze()#.squeeze(1)
-            .detach()
-            .cpu()
+        samples[head: min(head + max_batch, num_samples), 3] = (
+            -decoder(sample_subset)[:, 3]
+                .squeeze()  # .squeeze(1)
+                .detach()
+                .cpu()
         )
         head += max_batch
 
@@ -102,12 +107,12 @@ def create_mesh(
 
 
 def convert_sdf_samples_to_ply(
-    pytorch_3d_sdf_tensor,
-    voxel_grid_origin,
-    voxel_size,
-    ply_filename_out,
-    offset=None,
-    scale=None,
+        pytorch_3d_sdf_tensor,
+        voxel_grid_origin,
+        voxel_size,
+        ply_filename_out,
+        offset=None,
+        scale=None,
 ):
     """
     Convert sdf samples to .ply
@@ -126,8 +131,9 @@ def convert_sdf_samples_to_ply(
 
     verts, faces, normals, values = np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)), np.zeros(0)
     try:
+        print((np.min(numpy_3d_sdf_tensor[..., 3]) + np.max(numpy_3d_sdf_tensor[..., 3])) / 2)
         verts, faces, normals, values = skimage.measure.marching_cubes_lewiner(
-            numpy_3d_sdf_tensor, spacing=[voxel_size] * 3
+            numpy_3d_sdf_tensor, level=-20, spacing=[voxel_size] * 3
         )
     except:
         pass
@@ -173,6 +179,7 @@ def convert_sdf_samples_to_ply(
         )
     )
 
+
 # DEMO
 
 @torch.no_grad()
@@ -198,14 +205,15 @@ def save_demo(generator, file_name, rows=4, columns=4, chunk_size=16):
 
 
 @torch.no_grad()
-def demo_multiview(generator, file_name, poses, rows=4, chunk_size=16):
-    z = torch.randn(rows, generator.input_dim, device='cuda')
-    film_params = []
-    for i in range(0, rows, chunk_size):
-        batch_z = z[i:i + chunk_size]
-        w = generator.get_mapping(batch_z)
-        film_params.append(w)
-    film_params = torch.cat(film_params, dim=0)
+def demo_multiview(generator, file_name, poses, rows=4, film_params=None, chunk_size=16):
+    if film_params is None:
+        z = torch.randn(rows, generator.input_dim, device='cuda')
+        film_params = []
+        for i in range(0, rows, chunk_size):
+            batch_z = z[i:i + chunk_size]
+            w = generator.get_mapping(batch_z)
+            film_params.append(w)
+        film_params = torch.cat(film_params, dim=0)
     gen_image_row = []
     for i in range(film_params.shape[0]):
         gen_image = []
@@ -219,10 +227,12 @@ def demo_multiview(generator, file_name, poses, rows=4, chunk_size=16):
     rgb = to8b(demo_image)
     imageio.imsave(file_name, rgb)
 
+
 @torch.no_grad()
-def demo_video(generator, file_name, poses, chunk_size=16):
-    z = torch.randn(1, generator.input_dim, device='cuda')
-    film_params = generator.get_mapping(z)
+def demo_video(generator, file_name, poses, film_params=None, chunk_size=16):
+    if film_params is None:
+        z = torch.randn(1, generator.input_dim, device='cuda')
+        film_params = generator.get_mapping(z)
     gen_image = []
     generator.set_film_params(film_params[0])
     for pose in poses:
@@ -231,3 +241,55 @@ def demo_video(generator, file_name, poses, chunk_size=16):
         gen_image.append(generator.render(*pose[:2]).cpu().numpy())
     video = np.stack(gen_image)
     imageio.mimwrite(file_name, to8b(video), duration=0.1)
+
+
+@torch.no_grad()
+def demo_interpolate(generator, file_name, cols, pose=[0, 0], chunk_size=16):
+    z_ = torch.randn(2, generator.input_dim, device='cuda')
+    z = []
+    film_params = []
+    k = np.linspace(0, 1, cols)
+    for k_ in k:
+        z.append(z_[1] * k_ + z_[0] * (1 - k_))
+    z = torch.stack(z)
+    for i in range(0, cols, chunk_size):
+        batch_z = z[i:i + chunk_size]
+        w = generator.get_mapping(batch_z)
+        film_params.append(w)
+    film_params = torch.cat(film_params, dim=0)
+    gen_image_z = []
+    gen_image_w = []
+    for i in range(cols):
+        generator.set_film_params(film_params[i])
+        gen_image_z.append(generator.render(*pose[:2]).cpu().numpy())
+    gen_image_z = np.concatenate(gen_image_z, axis=1)
+    for i in range(cols):
+        generator.set_film_params(film_params[0] * (1 - k[i]) + film_params[-1] * k[i])
+        gen_image_w.append(generator.render(*pose[:2]).cpu().numpy())
+    gen_image_w = np.concatenate(gen_image_w, axis=1)
+    demo_image = np.concatenate([gen_image_z, gen_image_w], axis=0)
+    rgb = to8b(demo_image)
+    imageio.imsave(file_name, rgb)
+
+
+@torch.no_grad()
+def demo_style_mix(generator, file_name, rows, pose=[0, 0], chunk_size=16):
+    num = 2 * rows
+    z = torch.randn(num, generator.input_dim, device='cuda')
+    film_params = []
+    for i in range(0, num, chunk_size):
+        batch_z = z[i:i + chunk_size]
+        w = generator.get_mapping(batch_z)
+        film_params.append(w)
+    film_params = torch.cat(film_params, dim=0)
+    gen_image_row = []
+    for i in range(rows):
+        gen_image = []
+        for k in range(9, -1, -1):
+            film_params_ = torch.cat([film_params[2 * i][:k], film_params[2 * i + 1][k:]], dim=0)
+            generator.set_film_params(film_params_)
+            gen_image.append(generator.render(*pose[:2]).cpu().numpy())
+        gen_image_row.append(np.concatenate(gen_image, axis=1))
+    demo_image = np.concatenate(gen_image_row, axis=0)
+    rgb = to8b(demo_image)
+    imageio.imsave(file_name, rgb)

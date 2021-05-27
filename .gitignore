@@ -3,6 +3,7 @@
 *.png
 *.mp4
 *.gif
+*.ply
 *.npy
 *.npz
 *.dae

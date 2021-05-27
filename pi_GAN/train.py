@@ -46,7 +46,7 @@ iterations = [0] + iterations
 
 """=============== START ==============="""
 # Model
-generator = Generator(z_dim, resolution[0], render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.3, 0.15, use_dir)
+generator = Generator(z_dim, resolution[0], render_near, render_far, 12, render_coarse_sample_num, render_fine_sample_num, 0.45, 0.15, use_dir)
 generator = torch.nn.DataParallel(generator)
 discriminator = Discriminator(resolution[0])
 discriminator = torch.nn.DataParallel(discriminator)

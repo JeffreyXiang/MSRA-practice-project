@@ -26,12 +26,10 @@ z_dim = config['z_dim'] if 'z_dim' in config else 1024
 
 render_near = config['render_near'] if 'render_near' in config else 0.5
 render_far = config['render_far'] if 'render_far' in config else 1.5
-render_coarse_sample_num = config['render_coarse_sample_num'] if 'render_coarse_sample_num' in config else 12
-render_fine_sample_num = config['render_fine_sample_num'] if 'render_fine_sample_num' in config else 24
 
-resolution = 128
-render_coarse_sample_num = 32
-render_coarse_sample_num = 64
+resolution = 32
+render_coarse_sample_num = 8
+render_coarse_sample_num = 16
 
 """=============== START ==============="""
 # Model
@@ -55,7 +53,7 @@ elif demo_type == 1:
     demo_multiview(generator, './demo_multiview.png', poses, 8)
 elif demo_type == 2:
     n_pose = 9
-    poses = [[0.2 * (i - (n_pose - 1) / 2), 0] for i in range(n_pose)]
+    poses = [[0.15 * (i - (n_pose - 1) / 2), 0] for i in range(n_pose)]
     demo_multiview(generator, './demo_extrapolate.png', poses, 8)
 elif demo_type == 3:
     n_pose = 5
@@ -65,4 +63,8 @@ elif demo_type == 4:
     # Render
     poses = [[angle, 0] for angle in np.linspace(-1, 1, 40 + 1)[:-1]]
     demo_video(generator, './demo.gif', poses)
+elif demo_type == 5:
+    demo_interpolate(generator, './demo_interpolate.png', 9)
+elif demo_type == 6:
+    demo_style_mix(generator, './demo_style_mix.png', 8)
 

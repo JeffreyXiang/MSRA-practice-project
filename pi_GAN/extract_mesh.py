@@ -46,5 +46,5 @@ if len(check_points) > 0:
     check_point = torch.load(check_point_path)
     generator.load_state_dict(check_point['generator'])
 
-create_mesh(generator, 'test', N=512, max_batch=65536)
+create_mesh(generator, 'mesh', N=512, max_batch=65536)
 
