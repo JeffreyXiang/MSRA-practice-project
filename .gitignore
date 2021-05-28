@@ -13,6 +13,8 @@ siren/data/*
 siren/logs/*
 pi_GAN/data/*
 pi_GAN/logs/*
+pi_GAN/nerf_test/*
+pi_GAN/gan_test/*
 .vscode/
 .idea/
 nerf_python/
