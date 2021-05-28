@@ -1,0 +1,26 @@
+{
+    "output_path": "./logs/",
+    "experiment_name": "test_nodir_2",
+    "data_path": "./data/image64_rescale",
+    
+    "render_near": 0.9,
+    "render_far": 1.1,
+    "render_coarse_sample_num": 8,
+    "render_fine_sample_num": 16,
+
+    "use_dir": false,
+    "z_dim": 1024,
+    "iterations": [50000, 200000],
+    "fade_in_itrs": [0, 10000],
+    "batch_size": [64, 16],
+    "resolution": [32, 64],
+    "generator_lr": 5e-5,
+    "discriminator_lr": 4e-4,
+    "generator_lr_end": 1e-5,
+    "discriminator_lr_end": 1e-4,
+    "lr_decay": 500,
+
+    "i_print": 10,
+    "i_save": 10000,
+    "i_image": 100
+}
